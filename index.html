@@ -121,6 +121,13 @@
   .cell.l5{font-size:calc(var(--cell)*.27)}
   .help{width:48px;height:48px;border-radius:16px;background:var(--card);font-size:22px;box-shadow:0 3px 0 #e8dfd2;flex:none}
   .pic small{color:var(--muted);font-size:12px;margin-top:-6px}
+  .sect{width:min(820px,100%);font-size:20px;font-weight:800;margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+  .sect.xmas{background:linear-gradient(120deg,#c62828,#2e7d32);color:#fff;border-radius:18px;padding:10px 16px;box-shadow:0 3px 0 #1b5e20}
+  #view{position:relative;overflow:hidden;border-radius:14px;touch-action:none;max-width:100%}
+  #grid{transform-origin:0 0;will-change:transform}
+  .zoom{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+  .zoom button{width:46px;height:46px;border-radius:14px;background:var(--card);font-size:24px;font-weight:900;box-shadow:0 3px 0 #e8dfd2}
+  .zoom span{color:var(--muted);font-size:14px}
 </style>
 </head>
 <body>
@@ -184,7 +191,15 @@
     <button class="help" id="helpBtn" aria-label="Aiuto">💡</button>
     <button class="voice" id="voiceBtn" aria-label="Voce">🔊</button>
   </div>
-  <div id="grid"></div>
+  <div id="view">
+    <div id="grid"></div>
+  </div>
+  <div class="zoom" id="zoomBox">
+    <button id="zOut" aria-label="Rimpicciolisci">－</button>
+    <button id="zFit" aria-label="Vedi tutto">⤢</button>
+    <button id="zIn" aria-label="Ingrandisci">＋</button>
+    <span>🔍 due dita per ingrandire e spostarti</span>
+  </div>
   <div class="pal" id="pal"></div>
   <div class="hint" id="hint"></div>
 </section>
@@ -206,7 +221,7 @@
 "use strict";
 
 /* ---------- Disegni (12x12). "." = sfondo ---------- */
-const IMAGES = [{"id":"cuore","name":"Cuore","colors":{"R":"#e53935","P":"#ffb3c1","D":"#a31919"},"rows":["............",".RRR....RRR.","RPPRR..RRRRR","RPRRRRRRRRRD","RRRRRRRRRRRD","RRRRRRRRRRRD",".RRRRRRRRRD.","..RRRRRRRD..","...RRRRRD...","....RRRD....",".....RD.....","............"]},{"id":"fiore","name":"Fiore","colors":{"P":"#ff6fae","Y":"#ffd23f","G":"#43a047"},"rows":["....PPPP....","...PPPPPP...","..PPPYYPPP..","..PPYYYYPP..","..PPPYYPPP..","...PPPPPP...",".....GG.....","..GG.GG.....","...GGGG.GG..",".....GGGG...",".....GG.....",".....GG....."]},{"id":"sole","name":"Sole","colors":{"Y":"#ffd23f","O":"#ff9800","K":"#3e2723","R":"#e53935"},"rows":["O....OO....O",".O...OO...O.","...YYYYYY...","..YYYYYYYY..","..YKYYYYKY..","OOYYYYYYYYOO","OOYYYYYYYYOO","..YRYYYYRY..","..YYRRRRYY..","...YYYYYY...",".O...OO...O.","O....OO....O"]},{"id":"pesce","name":"Pesce","colors":{"O":"#fb8c00","W":"#fff176","K":"#212121","F":"#d84315"},"rows":["............","............","....OOOO....","..OOOOOOO..F",".OOKOWOOO.FF","OOOOOWOOOOFF","OOOOOWOOOOFF",".OOOOWOOO.FF","..OOOOOOO..F","....OOOO....","............","............"]},{"id":"fragola","name":"Fragola","colors":{"G":"#66bb6a","D":"#2e7d32","R":"#e53935","Y":"#ffeb3b"},"rows":[".....D......","...GGDGG....","..GGGGGGG...",".RRRGGGRRR..","RRYRRRRRYRR.","RRRRRYRRRRR.",".RYRRRRRYRR.",".RRRRYRRRR..","..RRRRRRR...","...RYRRRR...","....RRRR....",".....RR....."]},{"id":"casa","name":"Casa","colors":{"R":"#d84315","Y":"#ffe082","C":"#4fc3f7","B":"#8d6e63","G":"#66bb6a"},"rows":[".....RR.....","....RRRR....","...RRRRRR...","..RRRRRRRR..",".RRRRRRRRRR.","..YYYYYYYY..","..YCCYYCCY..","..YCCYYCCY..","..YYYBBYYY..","..YYYBBYYY..","..YYYBBYYY..","GGGGGGGGGGGG"]},{"id":"mela","name":"Mela","colors":{"R":"#e53935","H":"#ffcdd2","G":"#66bb6a","B":"#6d4c41","D":"#b71c1c"},"rows":[".....B......",".....BGG....","....BGGG....","..RRRBRRR...",".RHRRRRRRR..",".RHRRRRRRRD.",".RRRRRRRRRD.",".RRRRRRRRRD.",".RRRRRRRRRD.","..RRRRRRRD..","...RRDRRD...","............"]},{"id":"stella","name":"Stella","colors":{"Y":"#ffd23f","O":"#ffa000","K":"#5d4037"},"rows":[".....YY.....",".....YY.....","....YYYO....","YYYYYYYYYYYO",".YYYKYYKYYO.","..YYYYYYYO..","...YYKKYO...","...YYYYYO...","..YYYYYYYO..","..YYO..YYO..",".YYO....YYO.",".YO......YO."]},{"id":"fungo","name":"Fungo","colors":{"R":"#e53935","W":"#e3f2fd","S":"#ffe0b2","K":"#5d4037"},"rows":["....RRRR....","..RRWRRRRR..",".RRWWRRRWRR.",".RRRRRRWWWR.","RRWRRRRRWRRR","RWWWRRRRRRRR","RRRRRRRRRRRR","....SSSS....","....SKSK....","...SSSSSS...","...SSSSSS...","....SSSS...."]},{"id":"barca","name":"Barca","colors":{"R":"#e53935","K":"#5d4037","W":"#eceff1","B":"#a1887f","A":"#42a5f5"},"rows":[".....RR.....",".....R......",".....K......","....WK......","...WWK......","..WWWKW.....",".WWWWKWW....","WWWWWKWWW...",".....K......","BBBBBBBBBBBB",".BBBBBBBBBB.","AAAAAAAAAAAA"]},{"id":"arcobaleno","name":"Arcobaleno","colors":{"R":"#e53935","O":"#fb8c00","Y":"#fdd835","G":"#43a047","B":"#1e88e5"},"rows":["...RRRRRR...",".RRRRRRRRRR.","RRROOOOOORRR","RROOOOOOOORR","ROOYYYYYYOOR","ROYYYYYYYYOR","ROYYGGGGYYOR","ROYGGGGGGYOR","ROYGGBBGGYOR","ROYGBBBBGYOR","ROYGB..BGYOR","ROYGB..BGYOR"]},{"id":"coccinella","name":"Coccinella","colors":{"R":"#e53935","K":"#212121","W":"#e3f2fd"},"rows":["....KKKK....","...KWKKWK...","....KKKK....","..RRRKKRRR..",".RKKRKKRKKR.","RRKKRKKRKKRR","RRRRRKKRRRRR","RKKRRKKRRKKR","RKKRRKKRRKKR",".RRRRKKRRRR.","..RRRKKRRR..","...RRKKRR..."]},{"id":"gelato","name":"Gelato","colors":{"R":"#e53935","P":"#f48fb1","M":"#80cbc4","C":"#ffcc80","D":"#d7a15f"},"rows":[".....RR.....","...PPPPPP...","..PPPPPPPP..","..PPPPPPPP..","..MMMMMMMM..",".MMMMMMMMMM.",".MMMMMMMMMM.","..CDCDCDCD..","...DCDCDC...","...CDCDCD...","....DCDC....",".....CD....."]},{"id":"luna","name":"Luna","colors":{"Y":"#ffd23f","O":"#ffa000","S":"#90caf9"},"rows":["....YYY....S","..YYYY......",".YYYY....S..",".YYY........","YYYY........","YYYY....S...","YYYY........","YYYYO.......",".YYYYO....S.",".YYYYYOOO...","..YYYYYYYY..","....YYYY...."]},{"id":"farfalla","name":"Farfalla","colors":{"V":"#8e24aa","P":"#f48fb1","Y":"#ffd23f","K":"#3e2723"},"rows":["...K....K...","....K..K....","VVV..KK..VVV","VPPV.KK.VPPV","VPYPVKKVPYPV","VPPPVKKVPPPV",".VVVVKKVVVV.",".VPPVKKVPPV.","VPYPVKKVPYPV","VPPPVKKVPPPV",".VVV.KK.VVV.","............"]},{"id":"macchina","name":"Macchina","colors":{"R":"#e53935","C":"#81d4fa","K":"#212121","G":"#bdbdbd","Y":"#ffeb3b"},"rows":["............","............","...RRRRR....","..RCCRCCR...","..RCCRCCR...","RRRRRRRRRRR.","RRRRRRRRRRRY","RRRRRRRRRRRR",".KKK...KKK..",".KGK...KGK..",".KKK...KKK..","............"]},{"id":"pulcino","name":"Pulcino","colors":{"Y":"#ffeb3b","K":"#212121","O":"#fb8c00","W":"#f9a825"},"rows":["............","....YYYY....","...YYYYYY...","...YKYYKY...","...YYOOYY...","..YYYYYYYY..",".YYYYYYYYYY.",".WYYYYYYYYW.",".WWYYYYYYWW.","..YYYYYYYY..","...O....O...","..OO....OO.."]},{"id":"razzo","name":"Razzo","colors":{"R":"#e53935","W":"#cfd8dc","C":"#4fc3f7","O":"#fb8c00","Y":"#ffeb3b"},"rows":[".....RR.....","....RRRR....","....WWWW....","...WWCCWW...","...WCCCCW...","...WWCCWW...","...WWWWWW...","..RWWWWWWR..",".RRWWWWWWRR.",".RR.OYYO.RR.","....OYYO....",".....OO....."]},{"id":"ciliegie","name":"Ciliegie","colors":{"G":"#558b2f","L":"#9ccc65","R":"#e53935","H":"#ffcdd2","D":"#b71c1c"},"rows":[".......GLL..","......G.LLL.",".....G......","....G.G.....","...G...G....","..G.....G...",".RRR...RRR..","RRRRR.RRRRR.","RHRRD.RHRRD.","RRRRD.RRRRD.",".RRD...RRD..","............"]},{"id":"pinguino","name":"Pinguino","colors":{"K":"#37474f","W":"#e3f2fd","O":"#fb8c00"},"rows":["....KKKK....","...KKKKKK...","..KKWKKWKK..","..KKKOOKKK..",".KKWWWWWWKK.","KKWWWWWWWWKK","KKWWWWWWWWKK",".KWWWWWWWWK.",".KWWWWWWWWK.","..KWWWWWWK..","...KKKKKK...","..OOO..OOO.."]},{"id":"tortina","name":"Tortina","colors":{"R":"#e53935","P":"#f8bbd0","Y":"#ffd23f","B":"#a1887f","D":"#6d4c41"},"rows":[".....RR.....",".....RR.....","...PPPPPP...","..PPYPPPYP..",".PPPPPPPPPP.",".PYPPPYPPYP.","PPPPPPPPPPPP",".BDBDBDBDBD.",".BDBDBDBDBD.","..BDBDBDBD..","..BDBDBDBD..","...BBBBBB..."]},{"id":"gatto","name":"Gatto","colors":{"O":"#ffa726","P":"#f48fb1","K":"#212121","W":"#fff3e0"},"rows":[".O........O.",".OO......OO.",".OPO....OPO.",".OOOOOOOOOO.","OOOOOOOOOOOO","OOKKOOOOKKOO","OOKKOOOOKKOO","OOOOOPPOOOOO","OOOWWWWWWOOO",".OOWWWWWWOO.","..OOOOOOOO..","............"]},{"id":"albero","name":"Albero","colors":{"G":"#43a047","D":"#2e7d32","R":"#e53935","B":"#795548"},"rows":["....GGGG....","..GGGGGGGG..",".GGRGGGGDGG.","GGGGGGRGGGGG","GGDGGGGGGRGG","GRGGGDGGGGDG",".GGGGGGRGGG.","..GGDGGGGG..",".....BB.....",".....BB.....","....BBBB....","...BBBBBB..."]},{"id":"cane","name":"Cane","colors":{"B":"#bc8a5f","D":"#6d4c41","K":"#212121","W":"#fff3e0","P":"#ef5350"},"rows":["............",".DD.BBBB.DD.","DDDBBBBBBDDD","DDBBBBBBBBDD","DDBKBBBBKBDD","DDBBBBBBBBDD",".DBBWWWWBBD.","..BWWKKWWB..","..BWWWWWWB..","...BWPPWB...","....BPPB....","............"]},{"id":"gufo","name":"Gufo (grande)","colors":{"B":"#8d6e63","T":"#d7ccc8","W":"#fffde7","K":"#212121","O":"#fb8c00"},"rows":["................","..BB........BB..","..BB........BB..",".....BBBBBB.....","...BBWBBBBWBB...","...BWKWBBWKWB...","..BWWKWWWWKWWB..","..BBWWWBBWWWBB..",".BBBBWBOOBWBBBB.",".BBBBTTOOTTBBBB.","..BBBTTTTTTBBB..","..BBTTTTTTTTBB..","..BBTTTTTTTTBB..","...BBTTTTTTBB...","....BTTTTTTB....",".....OOTTOO....."]},{"id":"tartaruga","name":"Tartaruga (grande)","colors":{"G":"#66bb6a","D":"#2e7d32","L":"#c5e1a5","K":"#212121"},"rows":["................","................","................","................","....DDDDDDD.....","...DGGGGGGGD....","..DGDDGGGDDGD.L.",".DGGDGGGGGDGGDKL","LLGGGGGGGGGGGDLL",".DGDGGDDGGGDGDL.","..DGGGGDGGGGD...","...DGGGGGGGD....","...LLDDDDLL.....","...LL....LL.....","................","................"]},{"id":"castello","name":"Castello (grande)","colors":{"G":"#9e9e9e","D":"#5d4037","R":"#e53935","B":"#8d6e63","C":"#4fc3f7"},"rows":["..R............R",".DR...........DR",".D............D.","G.G..........G.G","GGGG........GGGG","GGGG........GGGG","GCCGG.G..G.GGCCG","GCCGGGGGGGGGGCCG","GGGGGGGCCGGGGGGG","GGGGGGGGGGGGGGGG","GGGGGGGBBGGGGGGG","GGGGGGGBBGGGGGGG","GGGGGGBBBBGGGGGG","GGGGGGBBBBGGGGGG","GGGGGGBBBBGGGGGG","GGGGGGBBBBGGGGGG"]},{"id":"treno","name":"Treno (grande)","colors":{"R":"#e53935","C":"#81d4fa","K":"#37474f","S":"#bdbdbd","A":"#1e88e5"},"rows":["...SS...........",".SS.S...........","..S.............","......RRRRR.....","..KK..RCCCR.....","..KK..RCCCR.....","..KK..RRRRR.....",".RRRRRRRRRR.....",".RRRRRRRRRRAAAAA",".RRRRRRRRRRACACA",".RRRRRRRRRRAAAAA",".RRKRRRRKRRAAKAA","..KKK..KKK..KKK.","..KKK..KKK..KKK.","...K....K....K..","SSSSSSSSSSSSSSSS"]}];
+const IMAGES = [{"id":"campanella","name":"Campanella","colors":{"Y":"#fbc02d","O":"#f57f17","R":"#e53935","K":"#5d4037"},"rows":["...RR..RR...","....RRRR....","...RR..RR...",".....YY.....","....YYYY....","...YYYYYO...","...YYYYYO...","..YYYYYYYO..","..YYYYYYYO..",".YYYYYYYYYO.","OOOOOOOOOOOO",".....KK....."],"cat":"natale"},{"id":"regalo","name":"Regalo","colors":{"R":"#e53935","G":"#43a047","Y":"#fdd835","D":"#b71c1c"},"rows":["...YY..YY...","....YYYY....",".....YY.....","RRRRRGGRRRRR","RRRRRGGRRRRD","GGGGGGGGGGGG","GGGGGGGGGGGG","RRRRRGGRRRRD","RRRRRGGRRRRD","RRRRRGGRRRRD","RRRRRGGRRRRD","DDDDDGGDDDDD"],"cat":"natale"},{"id":"cometa","name":"Stella cometa","colors":{"Y":"#fdd835","O":"#ffb300","S":"#b3e5fc"},"rows":[".........Y..","........YYY.",".......YYYYY","........YYY.",".......OY.Y.","......O.....","....OO......","...O..S.....","..O.........",".O....S.....","O.S.........","..........S."],"cat":"natale"},{"id":"calza","name":"Calza","colors":{"W":"#eceff1","R":"#e53935","G":"#43a047","D":"#b71c1c"},"rows":["..WWWWWW....","..WWWWWW....","..RRRRRR....","..RGRRRR....","..RRRRGR....","..RRRRRR....","..RGRRRR....","..RRRRRRRR..",".RRRRRGRRRR.",".RRRRRRRRRR.","..DRRRRRRRD.","...DDDDDDD.."],"cat":"natale"},{"id":"albero-natale","name":"Albero di Natale","colors":{"G":"#2e7d32","D":"#1e88e5","B":"#795548","Y":"#ffeb3b","R":"#e53935"},"rows":[".......YY.......","......YYYY......",".......GG.......","......GGGG......",".....GRGGGD.....","....GGGGGDGG....","...GGGGGGGGGG...",".....GGGGGR.....","....GRGGGGGG....","...GDGGGRGGDG...","..GGGGGGGGGGGG..","...GGGDGGRGGGD..",".GGGRGGGGGGGRGG.","GGGGGGGGGGGGGGGG",".......BB.......",".......BB......."],"cat":"natale"},{"id":"pupazzo","name":"Pupazzo di neve","colors":{"W":"#e3f2fd","K":"#263238","O":"#fb8c00","R":"#e53935","B":"#795548"},"rows":["....KKKKKKKK....","....KKKKKKKK....","...KKKKKKKKKK...",".....WWWWWW.....",".....WKWWKW.....",".....WWWOOO.....",".....WWWWWW.....","B...RRRRRRRR...B",".B..RRRRRRRR..B.","..B.WWWWWWRW.B..","...WWWWKWWRWW...","...WWWWWWWWWW...","...WWWWKWWWWW...","...WWWWWWWWWW...","....WWWKWWWW....",".....WWWWWW....."],"cat":"natale"},{"id":"zenzero","name":"Omino di pan di zenzero","colors":{"B":"#c77c3e","K":"#3e2723","W":"#fff8e1","R":"#e53935","P":"#f48fb1"},"rows":["................","......BBBB......",".....BBBBBB.....",".....BKBBKB.....",".....PBBBBP.....",".....BWBBWB.....","......BWWB......",".WBBBBBBBBBBBBW.",".BBBBBBBBBBBBBB.","....BBBRRBBB....","....BBBBBBBB....","....BBBRRBBB....","....WBBBBBBW....","....BBB..BBB....","....BBB..BBB....","....WBW..WBW...."],"cat":"natale"},{"id":"renna","name":"Renna","colors":{"B":"#a1887f","T":"#d7ccc8","D":"#5d4037","K":"#212121","R":"#e53935"},"rows":["................",".D.D........D.D.",".D.D........D.D.","D.D..........D.D","...D...BB...D...",".....BBBBBB.....","..BB.BBBBBB.BB..","....BBBBBBBB....","....BKBBBBKB....","....BBBBBBBB....","....BBBBBBBB....","....BBTRRTBB....",".....TTRRTT.....",".....TTTTTT.....","......TTTT......","................"],"cat":"natale"},{"id":"babbo","name":"Babbo Natale (gigante)","colors":{"R":"#d32f2f","W":"#eceff1","S":"#ffccbc","K":"#212121","P":"#f48fb1"},"rows":[".........RR....RR...","........RRRR....RR..","......RRRRRRRR...WW.",".....RRRRRRRRRR..WW.","...RRRRRRRRRRRRRRWW.","..WWWWWWWWWWWWWWWW..","..WWWWWWWWWWWWWWWW..","......SSSSSSSSS.....",".....SSSSSSSSSSS....","....SSSKSSSSKSSSS...","....SSSWWWWWWWSSS...","....SPWWWPPPWWPWS...","....WWWWWWPWWWWWW...","....WWWWWWWWWWWWW...","...WWWWWRRRRWWWWWW..","...WWWWWWWWWWWWWWW..","...WWWWWWWWWWWWWWW..","....WWWWWWWWWWWWW...","....WWWWWWWWWWWWW...",".....WWWWWWWWWWW...."],"cat":"natale"},{"id":"casetta","name":"Casetta sulla neve (gigante)","colors":{"B":"#8d6e63","W":"#e3f2fd","R":"#c62828","Y":"#ffd54f"},"rows":["........................",".W..............RR......","................RR...W..",".........WWWWWW.RR......","........WWWWWWWWRR......","......WWWWWWWWWWWW......","...W.WRRRRRRRRRRRRW.....","....WRRRRRRRRRRRRRRW....","..WWRRRRRRRRRRRRRRRRWWW.",".WRRRRRRRRRRRRRRRRRRRRW.","WRRRRRRRRRRRRRRRRRRRRRRW","WWWWWWWWWWWWWWWWWWWWWWWW",".W..BBBBBBBBBBBBBBBB....","....BBBBBBBBBBBBBBBB....","....BBYBYYBBBBYBYYBB....","....BBBBBBBBBBBBBBBB..W.","....BBYBYYBBBBYBYYBB....","....BBYBYYRRRRYBYYBB....","....BBBBBBRRRRBBBBBB....","..W.BBBBBBRRRRBBBBBBW...","....BBBBBBRRRRBBBBBB....","....BBBBBBRRRRBBBBBB....","....BBBBBBRRRRBBBBBB....","WWWWWWWWWWWWWWWWWWWWWWWW"],"cat":"natale"},{"id":"cuore","name":"Cuore","colors":{"R":"#e53935","P":"#ffb3c1","D":"#a31919"},"rows":["............",".RRR....RRR.","RPPRR..RRRRR","RPRRRRRRRRRD","RRRRRRRRRRRD","RRRRRRRRRRRD",".RRRRRRRRRD.","..RRRRRRRD..","...RRRRRD...","....RRRD....",".....RD.....","............"]},{"id":"fiore","name":"Fiore","colors":{"P":"#ff6fae","Y":"#ffd23f","G":"#43a047"},"rows":["....PPPP....","...PPPPPP...","..PPPYYPPP..","..PPYYYYPP..","..PPPYYPPP..","...PPPPPP...",".....GG.....","..GG.GG.....","...GGGG.GG..",".....GGGG...",".....GG.....",".....GG....."]},{"id":"sole","name":"Sole","colors":{"Y":"#ffd23f","O":"#ff9800","K":"#3e2723","R":"#e53935"},"rows":["O....OO....O",".O...OO...O.","...YYYYYY...","..YYYYYYYY..","..YKYYYYKY..","OOYYYYYYYYOO","OOYYYYYYYYOO","..YRYYYYRY..","..YYRRRRYY..","...YYYYYY...",".O...OO...O.","O....OO....O"]},{"id":"pesce","name":"Pesce","colors":{"O":"#fb8c00","W":"#fff176","K":"#212121","F":"#d84315"},"rows":["............","............","....OOOO....","..OOOOOOO..F",".OOKOWOOO.FF","OOOOOWOOOOFF","OOOOOWOOOOFF",".OOOOWOOO.FF","..OOOOOOO..F","....OOOO....","............","............"]},{"id":"fragola","name":"Fragola","colors":{"G":"#66bb6a","D":"#2e7d32","R":"#e53935","Y":"#ffeb3b"},"rows":[".....D......","...GGDGG....","..GGGGGGG...",".RRRGGGRRR..","RRYRRRRRYRR.","RRRRRYRRRRR.",".RYRRRRRYRR.",".RRRRYRRRR..","..RRRRRRR...","...RYRRRR...","....RRRR....",".....RR....."]},{"id":"casa","name":"Casa","colors":{"R":"#d84315","Y":"#ffe082","C":"#4fc3f7","B":"#8d6e63","G":"#66bb6a"},"rows":[".....RR.....","....RRRR....","...RRRRRR...","..RRRRRRRR..",".RRRRRRRRRR.","..YYYYYYYY..","..YCCYYCCY..","..YCCYYCCY..","..YYYBBYYY..","..YYYBBYYY..","..YYYBBYYY..","GGGGGGGGGGGG"]},{"id":"mela","name":"Mela","colors":{"R":"#e53935","H":"#ffcdd2","G":"#66bb6a","B":"#6d4c41","D":"#b71c1c"},"rows":[".....B......",".....BGG....","....BGGG....","..RRRBRRR...",".RHRRRRRRR..",".RHRRRRRRRD.",".RRRRRRRRRD.",".RRRRRRRRRD.",".RRRRRRRRRD.","..RRRRRRRD..","...RRDRRD...","............"]},{"id":"stella","name":"Stella","colors":{"Y":"#ffd23f","O":"#ffa000","K":"#5d4037"},"rows":[".....YY.....",".....YY.....","....YYYO....","YYYYYYYYYYYO",".YYYKYYKYYO.","..YYYYYYYO..","...YYKKYO...","...YYYYYO...","..YYYYYYYO..","..YYO..YYO..",".YYO....YYO.",".YO......YO."]},{"id":"fungo","name":"Fungo","colors":{"R":"#e53935","W":"#e3f2fd","S":"#ffe0b2","K":"#5d4037"},"rows":["....RRRR....","..RRWRRRRR..",".RRWWRRRWRR.",".RRRRRRWWWR.","RRWRRRRRWRRR","RWWWRRRRRRRR","RRRRRRRRRRRR","....SSSS....","....SKSK....","...SSSSSS...","...SSSSSS...","....SSSS...."]},{"id":"barca","name":"Barca","colors":{"R":"#e53935","K":"#5d4037","W":"#eceff1","B":"#a1887f","A":"#42a5f5"},"rows":[".....RR.....",".....R......",".....K......","....WK......","...WWK......","..WWWKW.....",".WWWWKWW....","WWWWWKWWW...",".....K......","BBBBBBBBBBBB",".BBBBBBBBBB.","AAAAAAAAAAAA"]},{"id":"arcobaleno","name":"Arcobaleno","colors":{"R":"#e53935","O":"#fb8c00","Y":"#fdd835","G":"#43a047","B":"#1e88e5"},"rows":["...RRRRRR...",".RRRRRRRRRR.","RRROOOOOORRR","RROOOOOOOORR","ROOYYYYYYOOR","ROYYYYYYYYOR","ROYYGGGGYYOR","ROYGGGGGGYOR","ROYGGBBGGYOR","ROYGBBBBGYOR","ROYGB..BGYOR","ROYGB..BGYOR"]},{"id":"coccinella","name":"Coccinella","colors":{"R":"#e53935","K":"#212121","W":"#e3f2fd"},"rows":["....KKKK....","...KWKKWK...","....KKKK....","..RRRKKRRR..",".RKKRKKRKKR.","RRKKRKKRKKRR","RRRRRKKRRRRR","RKKRRKKRRKKR","RKKRRKKRRKKR",".RRRRKKRRRR.","..RRRKKRRR..","...RRKKRR..."]},{"id":"gelato","name":"Gelato","colors":{"R":"#e53935","P":"#f48fb1","M":"#80cbc4","C":"#ffcc80","D":"#d7a15f"},"rows":[".....RR.....","...PPPPPP...","..PPPPPPPP..","..PPPPPPPP..","..MMMMMMMM..",".MMMMMMMMMM.",".MMMMMMMMMM.","..CDCDCDCD..","...DCDCDC...","...CDCDCD...","....DCDC....",".....CD....."]},{"id":"luna","name":"Luna","colors":{"Y":"#ffd23f","O":"#ffa000","S":"#90caf9"},"rows":["....YYY....S","..YYYY......",".YYYY....S..",".YYY........","YYYY........","YYYY....S...","YYYY........","YYYYO.......",".YYYYO....S.",".YYYYYOOO...","..YYYYYYYY..","....YYYY...."]},{"id":"farfalla","name":"Farfalla","colors":{"V":"#8e24aa","P":"#f48fb1","Y":"#ffd23f","K":"#3e2723"},"rows":["...K....K...","....K..K....","VVV..KK..VVV","VPPV.KK.VPPV","VPYPVKKVPYPV","VPPPVKKVPPPV",".VVVVKKVVVV.",".VPPVKKVPPV.","VPYPVKKVPYPV","VPPPVKKVPPPV",".VVV.KK.VVV.","............"]},{"id":"macchina","name":"Macchina","colors":{"R":"#e53935","C":"#81d4fa","K":"#212121","G":"#bdbdbd","Y":"#ffeb3b"},"rows":["............","............","...RRRRR....","..RCCRCCR...","..RCCRCCR...","RRRRRRRRRRR.","RRRRRRRRRRRY","RRRRRRRRRRRR",".KKK...KKK..",".KGK...KGK..",".KKK...KKK..","............"]},{"id":"pulcino","name":"Pulcino","colors":{"Y":"#ffeb3b","K":"#212121","O":"#fb8c00","W":"#f9a825"},"rows":["............","....YYYY....","...YYYYYY...","...YKYYKY...","...YYOOYY...","..YYYYYYYY..",".YYYYYYYYYY.",".WYYYYYYYYW.",".WWYYYYYYWW.","..YYYYYYYY..","...O....O...","..OO....OO.."]},{"id":"razzo","name":"Razzo","colors":{"R":"#e53935","W":"#cfd8dc","C":"#4fc3f7","O":"#fb8c00","Y":"#ffeb3b"},"rows":[".....RR.....","....RRRR....","....WWWW....","...WWCCWW...","...WCCCCW...","...WWCCWW...","...WWWWWW...","..RWWWWWWR..",".RRWWWWWWRR.",".RR.OYYO.RR.","....OYYO....",".....OO....."]},{"id":"ciliegie","name":"Ciliegie","colors":{"G":"#558b2f","L":"#9ccc65","R":"#e53935","H":"#ffcdd2","D":"#b71c1c"},"rows":[".......GLL..","......G.LLL.",".....G......","....G.G.....","...G...G....","..G.....G...",".RRR...RRR..","RRRRR.RRRRR.","RHRRD.RHRRD.","RRRRD.RRRRD.",".RRD...RRD..","............"]},{"id":"pinguino","name":"Pinguino","colors":{"K":"#37474f","W":"#e3f2fd","O":"#fb8c00"},"rows":["....KKKK....","...KKKKKK...","..KKWKKWKK..","..KKKOOKKK..",".KKWWWWWWKK.","KKWWWWWWWWKK","KKWWWWWWWWKK",".KWWWWWWWWK.",".KWWWWWWWWK.","..KWWWWWWK..","...KKKKKK...","..OOO..OOO.."]},{"id":"tortina","name":"Tortina","colors":{"R":"#e53935","P":"#f8bbd0","Y":"#ffd23f","B":"#a1887f","D":"#6d4c41"},"rows":[".....RR.....",".....RR.....","...PPPPPP...","..PPYPPPYP..",".PPPPPPPPPP.",".PYPPPYPPYP.","PPPPPPPPPPPP",".BDBDBDBDBD.",".BDBDBDBDBD.","..BDBDBDBD..","..BDBDBDBD..","...BBBBBB..."]},{"id":"gatto","name":"Gatto","colors":{"O":"#ffa726","P":"#f48fb1","K":"#212121","W":"#fff3e0"},"rows":[".O........O.",".OO......OO.",".OPO....OPO.",".OOOOOOOOOO.","OOOOOOOOOOOO","OOKKOOOOKKOO","OOKKOOOOKKOO","OOOOOPPOOOOO","OOOWWWWWWOOO",".OOWWWWWWOO.","..OOOOOOOO..","............"]},{"id":"albero","name":"Albero","colors":{"G":"#43a047","D":"#2e7d32","R":"#e53935","B":"#795548"},"rows":["....GGGG....","..GGGGGGGG..",".GGRGGGGDGG.","GGGGGGRGGGGG","GGDGGGGGGRGG","GRGGGDGGGGDG",".GGGGGGRGGG.","..GGDGGGGG..",".....BB.....",".....BB.....","....BBBB....","...BBBBBB..."]},{"id":"cane","name":"Cane","colors":{"B":"#bc8a5f","D":"#6d4c41","K":"#212121","W":"#fff3e0","P":"#ef5350"},"rows":["............",".DD.BBBB.DD.","DDDBBBBBBDDD","DDBBBBBBBBDD","DDBKBBBBKBDD","DDBBBBBBBBDD",".DBBWWWWBBD.","..BWWKKWWB..","..BWWWWWWB..","...BWPPWB...","....BPPB....","............"]},{"id":"gufo","name":"Gufo (grande)","colors":{"B":"#8d6e63","T":"#d7ccc8","W":"#fffde7","K":"#212121","O":"#fb8c00"},"rows":["................","..BB........BB..","..BB........BB..",".....BBBBBB.....","...BBWBBBBWBB...","...BWKWBBWKWB...","..BWWKWWWWKWWB..","..BBWWWBBWWWBB..",".BBBBWBOOBWBBBB.",".BBBBTTOOTTBBBB.","..BBBTTTTTTBBB..","..BBTTTTTTTTBB..","..BBTTTTTTTTBB..","...BBTTTTTTBB...","....BTTTTTTB....",".....OOTTOO....."]},{"id":"tartaruga","name":"Tartaruga (grande)","colors":{"G":"#66bb6a","D":"#2e7d32","L":"#c5e1a5","K":"#212121"},"rows":["................","................","................","................","....DDDDDDD.....","...DGGGGGGGD....","..DGDDGGGDDGD.L.",".DGGDGGGGGDGGDKL","LLGGGGGGGGGGGDLL",".DGDGGDDGGGDGDL.","..DGGGGDGGGGD...","...DGGGGGGGD....","...LLDDDDLL.....","...LL....LL.....","................","................"]},{"id":"castello","name":"Castello (grande)","colors":{"G":"#9e9e9e","D":"#5d4037","R":"#e53935","B":"#8d6e63","C":"#4fc3f7"},"rows":["..R............R",".DR...........DR",".D............D.","G.G..........G.G","GGGG........GGGG","GGGG........GGGG","GCCGG.G..G.GGCCG","GCCGGGGGGGGGGCCG","GGGGGGGCCGGGGGGG","GGGGGGGGGGGGGGGG","GGGGGGGBBGGGGGGG","GGGGGGGBBGGGGGGG","GGGGGGBBBBGGGGGG","GGGGGGBBBBGGGGGG","GGGGGGBBBBGGGGGG","GGGGGGBBBBGGGGGG"]},{"id":"treno","name":"Treno (grande)","colors":{"R":"#e53935","C":"#81d4fa","K":"#37474f","S":"#bdbdbd","A":"#1e88e5"},"rows":["...SS...........",".SS.S...........","..S.............","......RRRRR.....","..KK..RCCCR.....","..KK..RCCCR.....","..KK..RRRRR.....",".RRRRRRRRRR.....",".RRRRRRRRRRAAAAA",".RRRRRRRRRRACACA",".RRRRRRRRRRAAAAA",".RRKRRRRKRRAAKAA","..KKK..KKK..KKK.","..KKK..KKK..KKK.","...K....K....K..","SSSSSSSSSSSSSSSS"]}];
 
 const WORDS_V = {
   A:[["🐝","ape"],["🌳","albero"],["🦆","anatra"],["🍊","arancia"],["✈️","aereo"]],
@@ -267,6 +282,7 @@ function isLight(hex){
   const n = parseInt(hex.slice(1),16), r=n>>16, g=(n>>8)&255, b=n&255;
   return (r*299+g*587+b*114)/1000 > 170;
 }
+const shortName = im => im.name.replace(/ \((grande|gigante)\)/,"");
 const imgById = id => IMAGES.find(i => i.id===id);
 const modeById = id => MODES.find(m => m.id===id);
 
@@ -470,17 +486,34 @@ function renderPick(){
   const md = modeById(mode);
   $("#pickTitle").textContent = md.ico + " " + md.name + " " + LEVELS[level-1].s + " – scegli un disegno";
   const box = $("#pics"); box.innerHTML = "";
-  IMAGES.forEach(im => {
+  const groups = [
+    {t:"🎄 Speciale Natale", cls:"sect xmas", list:IMAGES.filter(i => i.cat==="natale")},
+    {t:"🎨 Disegni", cls:"sect", list:IMAGES.filter(i => i.cat!=="natale" && i.rows.length<=12)},
+    {t:"🧩 Disegni grandi", cls:"sect", list:IMAGES.filter(i => i.cat!=="natale" && i.rows.length>12)}
+  ];
+  const holder = box.parentNode;
+  holder.querySelectorAll(".sect, .pics.extra").forEach(e => e.remove());
+  let target = box;
+  groups.forEach((gr, gi) => {
+    const hd = document.createElement("div"); hd.className = gr.cls; hd.textContent = gr.t;
+    if(gi===0){ holder.insertBefore(hd, box); }
+    else{ const nb = document.createElement("div"); nb.className = "pics extra"; holder.appendChild(hd); holder.appendChild(nb); target = nb; }
+    gr.list.forEach(im => addPic(im, target, p));
+  });
+}
+function addPic(im, box, p){
+  {
     const st = p.stars[im.id] || 0;
     const b = document.createElement("button"); b.className = "pic";
     const cv = document.createElement("canvas"); drawThumb(cv, im, st>0);
-    const s = document.createElement("span"); s.textContent = im.name.replace(" (grande)","");
+    const s = document.createElement("span"); s.textContent = shortName(im);
     if(st){ const z = document.createElement("span"); z.className = "star"; z.textContent = " " + "★".repeat(st); s.appendChild(z); }
     b.append(cv, s);
-    if(im.rows.length>12){ const g = document.createElement("small"); g.textContent = "grande"; b.appendChild(g); }
+    const W = im.rows[0].length;
+    if(W>12){ const g = document.createElement("small"); g.textContent = W>=20 ? "gigante · " + W + "×" + W : "grande · " + W + "×" + W; b.appendChild(g); }
     b.onclick = () => start(im);
     box.appendChild(b);
-  });
+  }
 }
 
 /* ---------- Gioco ---------- */
@@ -488,11 +521,35 @@ function sizeGrid(){
   if(!img) return;
   const W = img.rows[0].length, H = img.rows.length, N = Math.max(W,H);
   const vw = Math.min(window.innerWidth - 32, 820);
-  const vh = window.innerHeight - 270;
+  const vh = window.innerHeight - (img.rows[0].length>12 ? 330 : 270);
   const side = Math.max(260, Math.min(vw, vh));
   const cell = Math.floor((side - 4 - (N-1)*2) / N);
   document.documentElement.style.setProperty("--cell", cell + "px");
+  $("#zoomBox").style.display = N>12 ? "" : "none";
+  resetZoom();
 }
+
+/* ---------- Zoom: due dita per ingrandire e spostarsi, un dito per colorare ---------- */
+const view = $("#view");
+let zs = 1, ztx = 0, zty = 0;
+function applyZoom(){
+  const W = grid.offsetWidth, H = grid.offsetHeight;
+  zs = Math.min(4, Math.max(1, zs));
+  ztx = Math.min(0, Math.max(W - W*zs, ztx));
+  zty = Math.min(0, Math.max(H - H*zs, zty));
+  grid.style.transform = `translate(${ztx}px, ${zty}px) scale(${zs})`;
+}
+function resetZoom(){ zs = 1; ztx = 0; zty = 0; applyZoom(); }
+function zoomAt(f, cx, cy){
+  const ns = Math.min(4, Math.max(1, zs*f));
+  const px = (cx - ztx)/zs, py = (cy - zty)/zs;
+  zs = ns; ztx = cx - px*zs; zty = cy - py*zs; applyZoom();
+}
+$("#zIn").onclick = e => { e.stopPropagation(); zoomAt(1.5, grid.offsetWidth/2, grid.offsetHeight/2); };
+$("#zOut").onclick = e => { e.stopPropagation(); zoomAt(1/1.5, grid.offsetWidth/2, grid.offsetHeight/2); };
+$("#zFit").onclick = e => { e.stopPropagation(); resetZoom(); };
+["pointerdown","pointermove","pointerup"].forEach(t => $("#zoomBox").addEventListener(t, e => e.stopPropagation()));
+document.addEventListener("gesturestart", e => e.preventDefault());
 window.addEventListener("resize", sizeGrid);
 
 function persist(){
@@ -549,7 +606,7 @@ function start(image, saved){
     remaining.forEach((r,i) => { if(r===0) pal.children[i].classList.add("ok"); });
   }
 
-  $("#playTitle").textContent = modeById(mode).ico + " " + img.name.replace(" (grande)","") + " " + LEVELS[level-1].s;
+  $("#playTitle").textContent = modeById(mode).ico + " " + shortName(img) + " " + LEVELS[level-1].s;
   $("#helpBtn").style.display = level===3 ? "" : "none";
   $("#voiceBtn").textContent = voiceOn ? "🔊" : "🔇";
   $("#hint").textContent = level===3 ? "Livello difficile: niente caselle illuminate. Se serve, tocca 💡" : mode==="iniziali" ? "Tocca un disegnino per sentire la parola 👂" :
@@ -589,31 +646,53 @@ function fill(c){
 }
 function updateProg(){ $("#prog").textContent = Math.round(filled/total*100) + "%"; }
 
-/* tocco e trascinamento */
+/* tocco e trascinamento (un dito colora, due dita zoomano) */
 let painting = false, lastIdx = -1;
+const touches = new Map(); let pinch = null;
 function cellAt(x,y){
   const el = document.elementFromPoint(x,y);
   return el && el.classList && el.classList.contains("cell") ? cells[+el.dataset.i] : null;
 }
+function local(e){ const r = view.getBoundingClientRect(); return {x:e.clientX - r.left, y:e.clientY - r.top}; }
+function startPinch(){
+  const [a,b] = [...touches.values()];
+  pinch = {d: Math.hypot(a.x-b.x, a.y-b.y) || 1, mx:(a.x+b.x)/2, my:(a.y+b.y)/2, s:zs, tx:ztx, ty:zty};
+}
 const grid = $("#grid");
-grid.addEventListener("pointerdown", e => {
+view.addEventListener("pointerdown", e => {
   e.preventDefault();
+  try{ view.setPointerCapture(e.pointerId); }catch(_){}
+  touches.set(e.pointerId, local(e));
+  if(touches.size===2){ painting = false; startPinch(); return; }
+  if(touches.size>2) return;
   const c = cellAt(e.clientX, e.clientY); if(!c || c.k<0) return;
   painting = true; lastIdx = +c.el.dataset.i;
-  try{ grid.setPointerCapture(e.pointerId); }catch(_){}
   if(c.done) return;
   if(c.lab && (mode==="iniziali"||mode==="somme"||mode==="sottrazioni")) say(c.lab.s);
   if(c.k===sel) fill(c);
   else{ c.el.classList.remove("bad"); void c.el.offsetWidth; c.el.classList.add("bad"); beep(180,.15,"square"); }
 });
-grid.addEventListener("pointermove", e => {
+view.addEventListener("pointermove", e => {
+  if(touches.has(e.pointerId)) touches.set(e.pointerId, local(e));
+  if(pinch && touches.size>=2){
+    const [a,b] = [...touches.values()];
+    const d = Math.hypot(a.x-b.x, a.y-b.y) || 1, mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+    const ns = Math.min(4, Math.max(1, pinch.s * d / pinch.d));
+    const px = (pinch.mx - pinch.tx)/pinch.s, py = (pinch.my - pinch.ty)/pinch.s;
+    zs = ns; ztx = mx - px*ns; zty = my - py*ns; applyZoom();
+    return;
+  }
   if(!painting) return;
   const c = cellAt(e.clientX, e.clientY); if(!c) return;
   const idx = +c.el.dataset.i; if(idx===lastIdx) return; lastIdx = idx;
   if(!c.done && c.k===sel) fill(c);
 });
-const stop = () => { painting = false; lastIdx = -1; };
-grid.addEventListener("pointerup", stop); grid.addEventListener("pointercancel", stop);
+const stop = e => {
+  touches.delete(e.pointerId);
+  if(touches.size<2) pinch = null;
+  if(touches.size===0){ painting = false; lastIdx = -1; }
+};
+view.addEventListener("pointerup", stop); view.addEventListener("pointercancel", stop);
 
 $("#playBack").onclick = () => { persist(); show("home"); };
 $("#voiceBtn").onclick = () => { voiceOn = !voiceOn; store.set("cei-voice", voiceOn); $("#voiceBtn").textContent = voiceOn ? "🔊" : "🔇"; if(voiceOn) say("Voce accesa"); };
