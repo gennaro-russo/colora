@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<!-- Colora e Impara · © 2026 Gennaro Russo · Tutti i diritti riservati. Vedi LICENSE. -->
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Colora">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#fdf8ef">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>Colora e Impara</title>
+<style>
+  :root{
+    --bg:#fdf8ef; --ink:#2d2a32; --muted:#7a7480; --card:#ffffff;
+    --accent:#ff7a59; --accent2:#4f8cff; --empty:#efeae2; --hi:#fff1a8;
+    --cell:40px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:"Nunito",ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-serif;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;overscroll-behavior:none}
+  button{font:inherit;color:inherit;border:0;cursor:pointer;background:none}
+  .screen{display:none;min-height:100%;padding:16px 16px 24px;flex-direction:column;align-items:center}
+  .screen.on{display:flex}
+  h1{font-size:clamp(28px,6vw,44px);margin:12px 0 4px;letter-spacing:.5px}
+  h1 span{color:var(--accent)}
+  .sub{color:var(--muted);margin:0 0 20px;font-size:17px;text-align:center}
+  .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;width:min(820px,100%)}
+  .mode{background:var(--card);border-radius:22px;padding:18px 16px;text-align:left;
+    box-shadow:0 3px 0 #e8dfd2;display:flex;flex-direction:column;gap:6px;transition:transform .1s}
+  .mode:active{transform:scale(.97)}
+  .mode .ico{font-size:40px;line-height:1}
+  .mode b{font-size:21px}
+  .mode small{color:var(--muted);font-size:14px;line-height:1.3}
+  .bar{width:min(820px,100%);display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .back{width:48px;height:48px;border-radius:16px;background:var(--card);font-size:24px;box-shadow:0 3px 0 #e8dfd2;flex:none}
+  .bar .t{font-size:22px;font-weight:800;flex:1}
+  .pill{background:var(--card);border-radius:999px;padding:8px 14px;font-weight:700;box-shadow:0 3px 0 #e8dfd2;font-size:16px}
+  .voice{width:48px;height:48px;border-radius:16px;background:var(--card);font-size:22px;box-shadow:0 3px 0 #e8dfd2;flex:none}
+  .pics{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;width:min(820px,100%)}
+  .pic{background:var(--card);border-radius:20px;padding:12px;box-shadow:0 3px 0 #e8dfd2;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .pic canvas{width:100%;aspect-ratio:1;image-rendering:pixelated;border-radius:10px}
+  .pic span{font-weight:700}
+  .pic .star{color:#f5b301}
+  #gridWrap{position:relative}
+  #grid{display:grid;gap:2px;background:#e3dccf;padding:2px;border-radius:14px;touch-action:none}
+  .cell{width:var(--cell);height:var(--cell);border-radius:4px;background:#fff;display:flex;align-items:center;justify-content:center;
+    font-weight:800;color:#6d6672;font-size:calc(var(--cell)*.36);line-height:1;transition:background .15s;position:relative;overflow:hidden}
+  .cell.emo{font-size:calc(var(--cell)*.56)}
+  .cell.bgc{background:var(--empty)}
+  .cell.hi{background:var(--hi);color:var(--ink)}
+  .cell.done{color:transparent}
+  .cell.done.emo{font-size:0}
+  .cell.bad{animation:bad .35s}
+  @keyframes bad{0%,100%{transform:none}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+  .cell.pop{animation:pop .25s}
+  @keyframes pop{0%{transform:scale(.6)}100%{transform:scale(1)}}
+  .pal{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:14px;width:min(820px,100%)}
+  .sw{min-width:72px;height:72px;border-radius:20px;display:flex;align-items:center;justify-content:center;
+    font-size:28px;font-weight:900;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35);box-shadow:0 4px 0 rgba(0,0,0,.15);
+    border:4px solid transparent;transition:transform .1s;position:relative;padding:0 10px}
+  .sw.sel{border-color:var(--ink);transform:translateY(-4px)}
+  .sw.ok::after{content:"✓";position:absolute;top:-8px;right:-8px;background:#2fbf71;color:#fff;border-radius:50%;
+    width:26px;height:26px;font-size:16px;display:flex;align-items:center;justify-content:center;text-shadow:none}
+  .sw.light{color:#2d2a32;text-shadow:none}
+  .hint{color:var(--muted);margin-top:10px;font-size:15px;text-align:center;min-height:20px}
+  .win{position:fixed;inset:0;background:rgba(45,42,50,.45);display:none;align-items:center;justify-content:center;z-index:10;padding:20px}
+  .win.on{display:flex}
+  .winbox{background:var(--card);border-radius:28px;padding:26px;text-align:center;max-width:420px;width:100%;animation:pop .3s}
+  .winbox h2{font-size:34px;margin:6px 0}
+  .winbox canvas{width:180px;height:180px;image-rendering:pixelated;margin:8px auto;display:block}
+  .big{background:var(--accent);color:#fff;font-weight:800;font-size:20px;padding:14px 22px;border-radius:18px;box-shadow:0 4px 0 #d85f40;margin:6px}
+  .big.alt{background:var(--accent2);box-shadow:0 4px 0 #3a6fd1}
+  .conf{position:fixed;top:-40px;font-size:30px;pointer-events:none;z-index:11;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+  .foot{margin-top:auto;padding-top:24px;color:var(--muted);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<section class="screen on" id="home">
+  <h1>Colora <span>e</span> Impara</h1>
+  <p class="sub">Scegli un gioco, poi colora ogni quadratino con il colore giusto!</p>
+  <div class="modes" id="modes"></div>
+  <p class="sub" style="margin-top:22px" id="albumInfo"></p>
+  <div class="foot">© 2026 Gennaro Russo · Funziona anche offline · nessuna pubblicità</div>
+</section>
+
+<!-- PICK IMAGE -->
+<section class="screen" id="pick">
+  <div class="bar">
+    <button class="back" data-go="home" aria-label="Indietro">←</button>
+    <div class="t" id="pickTitle"></div>
+  </div>
+  <div class="pics" id="pics"></div>
+</section>
+
+<!-- PLAY -->
+<section class="screen" id="play">
+  <div class="bar">
+    <button class="back" data-go="pick" aria-label="Indietro">←</button>
+    <div class="t" id="playTitle"></div>
+    <div class="pill" id="prog">0%</div>
+    <button class="voice" id="voiceBtn" aria-label="Voce">🔊</button>
+  </div>
+  <div id="gridWrap"><div id="grid"></div></div>
+  <div class="pal" id="pal"></div>
+  <div class="hint" id="hint"></div>
+</section>
+
+<div class="win" id="win">
+  <div class="winbox">
+    <div style="font-size:54px">🎉</div>
+    <h2>Fantastico!</h2>
+    <p style="color:var(--muted);margin:0">Hai finito il disegno: è nel tuo album!</p>
+    <canvas id="winCanvas" width="12" height="12"></canvas>
+    <button class="big" id="nextBtn">Un altro disegno</button>
+    <button class="big alt" id="homeBtn">Cambia gioco</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- Disegni (12x12). "." = sfondo ---------- */
+const IMAGES = [
+  {id:"cuore", name:"Cuore", colors:{R:"#e53935",P:"#ffb3c1",D:"#a31919"}, rows:[
+    "............",".RRR....RRR.","RPPRR..RRRRR","RPRRRRRRRRRD","RRRRRRRRRRRD","RRRRRRRRRRRD",
+    ".RRRRRRRRRD.","..RRRRRRRD..","...RRRRRD...","....RRRD....",".....RD.....","............"]},
+  {id:"fiore", name:"Fiore", colors:{P:"#ff6fae",Y:"#ffd23f",G:"#43a047"}, rows:[
+    "....PPPP....","...PPPPPP...","..PPPYYPPP..","..PPYYYYPP..","..PPPYYPPP..","...PPPPPP...",
+    ".....GG.....","..GG.GG.....","...GGGG.GG..",".....GGGG...",".....GG.....",".....GG....."]},
+  {id:"sole", name:"Sole", colors:{Y:"#ffd23f",O:"#ff9800",K:"#3e2723",R:"#e53935"}, rows:[
+    "O....OO....O",".O...OO...O.","...YYYYYY...","..YYYYYYYY..","..YKYYYYKY..","OOYYYYYYYYOO",
+    "OOYYYYYYYYOO","..YRYYYYRY..","..YYRRRRYY..","...YYYYYY...",".O...OO...O.","O....OO....O"]},
+  {id:"pesce", name:"Pesce", colors:{O:"#fb8c00",W:"#fff176",K:"#212121",F:"#d84315"}, rows:[
+    "............","............","....OOOO....","..OOOOOOO..F",".OOKOWOOO.FF","OOOOOWOOOOFF",
+    "OOOOOWOOOOFF",".OOOOWOOO.FF","..OOOOOOO..F","....OOOO....","............","............"]},
+  {id:"fragola", name:"Fragola", colors:{G:"#66bb6a",D:"#2e7d32",R:"#e53935",Y:"#ffeb3b"}, rows:[
+    ".....D......","...GGDGG....","..GGGGGGG...",".RRRGGGRRR..","RRYRRRRRYRR.","RRRRRYRRRRR.",
+    ".RYRRRRRYRR.",".RRRRYRRRR..","..RRRRRRR...","...RYRRRR...","....RRRR....",".....RR....."]},
+  {id:"casa", name:"Casa", colors:{R:"#d84315",Y:"#ffe082",C:"#4fc3f7",B:"#8d6e63",G:"#66bb6a"}, rows:[
+    ".....RR.....","....RRRR....","...RRRRRR...","..RRRRRRRR..",".RRRRRRRRRR.","..YYYYYYYY..",
+    "..YCCYYCCY..","..YCCYYCCY..","..YYYBBYYY..","..YYYBBYYY..","..YYYBBYYY..","GGGGGGGGGGGG"]}
+];
+
+/* ---------- Parole per il gioco delle iniziali ---------- */
+const WORDS = {
+  A:[["🐝","ape"],["🌳","albero"],["🦆","anatra"],["🍊","arancia"],["✈️","aereo"]],
+  E:[["🐘","elefante"],["🌿","erba"],["🚁","elicottero"]],
+  I:[["🏝️","isola"],["🥗","insalata"],["🦛","ippopotamo"]],
+  O:[["🐻","orso"],["☂️","ombrello"],["⌚","orologio"],["👁️","occhio"]],
+  U:[["🍇","uva"],["🥚","uovo"],["🐦","uccello"],["🦄","unicorno"]]
+};
+
+const MODES = [
+  {id:"numeri", ico:"🔢", name:"Numeri", desc:"Trova il numero giusto (1–5)"},
+  {id:"somme", ico:"➕", name:"Somme", desc:"Quanto fa 2+3? Colora con il risultato"},
+  {id:"sottrazioni", ico:"➖", name:"Sottrazioni", desc:"Quanto fa 7−4? Colora con il risultato"},
+  {id:"vocali", ico:"🅰️", name:"Vocali", desc:"A, E, I, O, U: maiuscole e minuscole"},
+  {id:"iniziali", ico:"🍎", name:"Iniziali", desc:"Con che vocale inizia la parola?"}
+];
+
+/* ---------- Utilità ---------- */
+const $ = s => document.querySelector(s);
+const rnd = n => Math.floor(Math.random()*n);
+const pick = a => a[rnd(a.length)];
+const shuffle = a => { a = a.slice(); for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]];} return a; };
+const store = {
+  get(k,d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+function isLight(hex){
+  const n = parseInt(hex.slice(1),16), r=n>>16, g=(n>>8)&255, b=n&255;
+  return (r*299+g*587+b*114)/1000 > 170;
+}
+
+/* ---------- Voce e suoni ---------- */
+let voiceOn = store.get("cei-voice", true);
+let itVoice = null;
+function loadVoice(){
+  try{
+    const vs = speechSynthesis.getVoices();
+    itVoice = vs.find(v => /^it/i.test(v.lang)) || null;
+  }catch(e){}
+}
+try{ loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; }catch(e){}
+function say(text){
+  if(!voiceOn) return;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "it-IT"; if(itVoice) u.voice = itVoice; u.rate = 0.9; u.pitch = 1.1;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+let actx = null;
+function beep(freq, dur, type){
+  try{
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type||"sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.08, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+    o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + dur);
+  }catch(e){}
+}
+const NUMWORD = ["zero","uno","due","tre","quattro","cinque","sei","sette","otto","nove","dieci"];
+
+/* ---------- Generazione delle "chiavi" per ogni colore ---------- */
+function makeKeys(mode, k){
+  if(mode==="numeri") return Array.from({length:k},(_,i)=>i+1);
+  if(mode==="somme") return shuffle([2,3,4,5,6,7,8,9,10]).slice(0,k).sort((a,b)=>a-b);
+  if(mode==="sottrazioni") return shuffle([1,2,3,4,5,6,7,8,9]).slice(0,k).sort((a,b)=>a-b);
+  return shuffle(["A","E","I","O","U"]).slice(0,k).sort();
+}
+function makeLabel(mode, key){
+  if(mode==="numeri") return {txt:String(key), speak:NUMWORD[key]};
+  if(mode==="somme"){ const a = 1+rnd(key-1), b = key-a; return {txt:a+"+"+b, speak:NUMWORD[a]+" più "+NUMWORD[b]}; }
+  if(mode==="sottrazioni"){ const b = 1+rnd(10-key), a = key+b; return {txt:a+"−"+b, speak:NUMWORD[a]+" meno "+NUMWORD[b]}; }
+  if(mode==="vocali"){ const t = Math.random()<.5 ? key : key.toLowerCase(); return {txt:t, speak:key}; }
+  const w = pick(WORDS[key]); return {txt:w[0], speak:w[1], emo:true};
+}
+
+/* ---------- Stato ---------- */
+let mode = null, img = null, cells = [], keys = [], colorIds = [], sel = -1, remaining = [], total = 0, filled = 0;
+let album = store.get("cei-album", []);
+
+/* ---------- Navigazione ---------- */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id===id));
+  if(id==="home") renderHome();
+  if(id==="pick") renderPick();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => show(b.dataset.go)));
+
+function renderHome(){
+  const m = $("#modes"); m.innerHTML = "";
+  MODES.forEach(md => {
+    const b = document.createElement("button"); b.className = "mode";
+    b.innerHTML = `<div class="ico">${md.ico}</div><b>${md.name}</b><small>${md.desc}</small>`;
+    b.onclick = () => { mode = md.id; say(md.name); show("pick"); };
+    m.appendChild(b);
+  });
+  $("#albumInfo").textContent = album.length ? `⭐ Album: ${album.length} di ${IMAGES.length} disegni completati` : "";
+}
+
+function drawThumb(cv, image, colored){
+  const ctx = cv.getContext("2d"); ctx.clearRect(0,0,12,12);
+  image.rows.forEach((row,y) => [...row].forEach((ch,x) => {
+    if(ch===".") return;
+    ctx.fillStyle = colored ? image.colors[ch] : "#d9d2c6";
+    ctx.fillRect(x,y,1,1);
+  }));
+}
+
+function renderPick(){
+  const md = MODES.find(x => x.id===mode);
+  $("#pickTitle").textContent = md.ico + " " + md.name + " – scegli un disegno";
+  const p = $("#pics"); p.innerHTML = "";
+  IMAGES.forEach(im => {
+    const done = album.includes(im.id);
+    const b = document.createElement("button"); b.className = "pic";
+    const cv = document.createElement("canvas"); cv.width = 12; cv.height = 12; drawThumb(cv, im, done);
+    const s = document.createElement("span"); s.innerHTML = done ? `${im.name} <span class="star">★</span>` : im.name;
+    b.append(cv, s); b.onclick = () => start(im);
+    p.appendChild(b);
+  });
+}
+
+/* ---------- Gioco ---------- */
+function sizeGrid(){
+  const vw = Math.min(window.innerWidth - 32, 820);
+  const vh = window.innerHeight - 270;
+  const side = Math.max(240, Math.min(vw, vh));
+  const cell = Math.floor((side - 4 - 11*2) / 12);
+  document.documentElement.style.setProperty("--cell", cell + "px");
+}
+window.addEventListener("resize", sizeGrid);
+
+function start(image){
+  img = image;
+  const ids = Object.keys(img.colors);
+  // ordina i colori per numero di caselle (i più grandi prima)
+  const count = {}; img.rows.join("").split("").forEach(c => { if(c!==".") count[c]=(count[c]||0)+1; });
+  colorIds = ids.sort((a,b)=>count[b]-count[a]);
+  keys = makeKeys(mode, colorIds.length);
+  const keyOf = {}; colorIds.forEach((c,i)=> keyOf[c] = i);
+  // l'associazione colore→chiave è casuale ad ogni partita
+  const order = shuffle(colorIds.map((_,i)=>i)); colorIds.forEach((c,i)=> keyOf[c] = order[i]);
+
+  const g = $("#grid"); g.innerHTML = ""; g.style.gridTemplateColumns = "repeat(12, var(--cell))";
+  cells = []; remaining = keys.map(()=>0); total = 0; filled = 0;
+  img.rows.forEach((row,y) => [...row].forEach((ch,x) => {
+    const d = document.createElement("div"); d.className = "cell";
+    const c = {el:d, ch, k:-1, done:false};
+    if(ch==="."){ d.classList.add("bgc"); }
+    else{
+      c.k = keyOf[ch];
+      const lab = makeLabel(mode, keys[c.k]);
+      d.textContent = lab.txt; c.speak = lab.speak;
+      if(lab.emo) d.classList.add("emo");
+      remaining[c.k]++; total++;
+    }
+    d.dataset.i = cells.length; cells.push(c); g.appendChild(d);
+  }));
+
+  // palette
+  const pal = $("#pal"); pal.innerHTML = "";
+  keys.forEach((k,i) => {
+    const ch = colorIds[order.indexOf(i)];
+    const col = img.colors[ch];
+    const b = document.createElement("button"); b.className = "sw" + (isLight(col) ? " light" : "");
+    b.style.background = col; b.textContent = String(k); b.dataset.k = i; b.dataset.col = col;
+    b.onclick = () => { select(i); say(typeof k==="number" ? NUMWORD[k] : k); };
+    pal.appendChild(b);
+  });
+  const md = MODES.find(x => x.id===mode);
+  $("#playTitle").textContent = img.name;
+  $("#voiceBtn").textContent = voiceOn ? "🔊" : "🔇";
+  $("#hint").textContent = mode==="iniziali" ? "Tocca un disegnino per sentire la parola 👂" :
+                           (mode==="somme"||mode==="sottrazioni") ? "Tocca una casella per sentire l'operazione 👂" :
+                           "Scegli un colore qui sopra, poi tocca le caselle!";
+  show("play"); sizeGrid(); select(0); updateProg();
+}
+
+function colorOfKey(i){ return $("#pal").children[i].dataset.col; }
+
+function select(i){
+  sel = i;
+  [...$("#pal").children].forEach((b,j) => b.classList.toggle("sel", j===i));
+  cells.forEach(c => c.el.classList.toggle("hi", !c.done && c.k===i));
+}
+
+function fill(c){
+  c.done = true; c.el.classList.remove("hi"); c.el.classList.add("done","pop");
+  c.el.style.background = colorOfKey(c.k);
+  filled++; remaining[c.k]--;
+  beep(520 + (filled%5)*60, .12);
+  if(remaining[c.k]===0){
+    $("#pal").children[c.k].classList.add("ok");
+    beep(880,.25,"triangle");
+    const next = remaining.findIndex(r => r>0);
+    if(next>=0) setTimeout(()=>select(next), 250);
+  }
+  updateProg();
+  if(filled===total) setTimeout(win, 500);
+}
+
+function updateProg(){ $("#prog").textContent = Math.round(filled/total*100) + "%"; }
+
+/* tocco e trascinamento */
+let painting = false, lastIdx = -1;
+function cellAt(x,y){
+  const el = document.elementFromPoint(x,y);
+  return el && el.classList && el.classList.contains("cell") ? cells[+el.dataset.i] : null;
+}
+const grid = $("#grid");
+grid.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  const c = cellAt(e.clientX, e.clientY); if(!c || c.k<0) return;
+  painting = true; lastIdx = +c.el.dataset.i;
+  try{ grid.setPointerCapture(e.pointerId); }catch(_){}
+  if(c.done) return;
+  if(c.speak && (mode==="iniziali"||mode==="somme"||mode==="sottrazioni")) say(c.speak);
+  if(c.k===sel) fill(c);
+  else{
+    c.el.classList.remove("bad"); void c.el.offsetWidth; c.el.classList.add("bad");
+    beep(180,.15,"square");
+  }
+});
+grid.addEventListener("pointermove", e => {
+  if(!painting) return;
+  const c = cellAt(e.clientX, e.clientY); if(!c) return;
+  const idx = +c.el.dataset.i; if(idx===lastIdx) return; lastIdx = idx;
+  if(!c.done && c.k===sel) fill(c);
+});
+const stop = () => { painting = false; lastIdx = -1; };
+grid.addEventListener("pointerup", stop); grid.addEventListener("pointercancel", stop);
+
+$("#voiceBtn").onclick = () => { voiceOn = !voiceOn; store.set("cei-voice", voiceOn); $("#voiceBtn").textContent = voiceOn ? "🔊" : "🔇"; if(voiceOn) say("Voce accesa"); };
+
+/* ---------- Vittoria ---------- */
+function win(){
+  if(!album.includes(img.id)){ album.push(img.id); store.set("cei-album", album); }
+  drawThumb($("#winCanvas"), img, true);
+  $("#win").classList.add("on");
+  say("Fantastico! Hai finito il disegno!");
+  [660,784,988,1318].forEach((f,i)=>setTimeout(()=>beep(f,.18,"triangle"), i*120));
+  const em = ["🎉","⭐","🎈","🌈","✨","💖"];
+  for(let i=0;i<28;i++){
+    const s = document.createElement("div"); s.className = "conf"; s.textContent = pick(em);
+    s.style.left = rnd(100) + "vw"; s.style.animationDuration = (1.8 + Math.random()*1.8) + "s";
+    s.style.animationDelay = (Math.random()*.6) + "s";
+    document.body.appendChild(s); setTimeout(()=>s.remove(), 4500);
+  }
+}
+$("#nextBtn").onclick = () => {
+  $("#win").classList.remove("on");
+  const todo = IMAGES.filter(i => !album.includes(i.id) && i.id!==img.id);
+  start(todo.length ? todo[0] : pick(IMAGES.filter(i=>i.id!==img.id)));
+};
+$("#homeBtn").onclick = () => { $("#win").classList.remove("on"); show("home"); };
+
+renderHome();
+})();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
+</script>
+</body>
+</html>
