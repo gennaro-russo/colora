@@ -111,6 +111,23 @@
   .big.alt{background:var(--accent2);box-shadow:0 4px 0 #3a6fd1}
   .conf{position:fixed;top:-40px;font-size:30px;pointer-events:none;z-index:11;animation:fall linear forwards}
   @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+  .mode.free{background:linear-gradient(120deg,#7e57c2,#42a5f5);color:#fff;box-shadow:0 3px 0 #3a6fd1}
+  .mode.free small{color:rgba(255,255,255,.9)}
+  .pic.add{border:3px dashed #e3dccf;box-shadow:none;background:transparent;justify-content:center;min-height:150px}
+  .pic.add .ico{font-size:44px;line-height:1}
+  .pic{position:relative}
+  .pic .del{position:absolute;top:6px;right:6px;background:#ffe3dd;color:#c0392b;border-radius:12px;padding:3px 8px;font-weight:800;font-size:13px}
+  .pic .del.sure{background:#e53935;color:#fff}
+  #freeCv{width:min(820px,100%);background:#fff;border-radius:18px;box-shadow:0 3px 0 #e8dfd2;touch-action:none;display:block}
+  .fcols{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:12px;width:min(820px,100%)}
+  .fcols button{width:46px;height:46px;border-radius:50%;border:4px solid #fff;box-shadow:0 2px 0 #e8dfd2}
+  .fcols button.sel{border-color:var(--ink);transform:scale(1.12)}
+  .ftools{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:10px}
+  .ftools button{min-width:52px;height:52px;border-radius:16px;background:var(--card);box-shadow:0 3px 0 #e8dfd2;font-size:22px;padding:0 10px;display:flex;align-items:center;justify-content:center;gap:6px}
+  .ftools button.sel{outline:3px solid var(--accent);background:#fff1ea}
+  .ftools .dot{display:block;border-radius:50%;background:var(--ink)}
+  .busy{position:fixed;inset:0;background:rgba(45,42,50,.45);display:none;align-items:center;justify-content:center;z-index:11;color:#fff;font-size:22px;font-weight:800}
+  .busy.on{display:flex}
   .foot{margin-top:auto;padding-top:24px;color:var(--muted);font-size:13px;text-align:center}
   .levels{width:min(820px,100%);display:flex;gap:10px;margin-bottom:16px}
   .lv{flex:1;background:var(--card);border-radius:18px;padding:10px 6px;box-shadow:0 3px 0 #e8dfd2;border:3px solid transparent;text-align:center}
@@ -188,6 +205,7 @@
     <button class="back" id="playBack" aria-label="Indietro">←</button>
     <div class="t" id="playTitle"></div>
     <div class="pill" id="prog">0%</div>
+    <button class="help" id="resetBtn" aria-label="Ricomincia il disegno">🔄</button>
     <button class="help" id="helpBtn" aria-label="Aiuto">💡</button>
     <button class="voice" id="voiceBtn" aria-label="Voce">🔊</button>
   </div>
@@ -204,6 +222,23 @@
   <div class="hint" id="hint"></div>
 </section>
 
+<!-- DISEGNO LIBERO -->
+<section class="screen" id="free">
+  <div class="bar">
+    <button class="back" data-go="home" aria-label="Indietro">←</button>
+    <div class="t">🖍️ Disegno libero</div>
+    <button class="voice" id="fUndo" aria-label="Annulla">↩️</button>
+    <button class="voice" id="fClear" aria-label="Cancella tutto">🗑️</button>
+    <button class="voice" id="fSave" aria-label="Salva">💾</button>
+  </div>
+  <canvas id="freeCv"></canvas>
+  <div class="fcols" id="fcols"></div>
+  <div class="ftools" id="ftools"></div>
+</section>
+
+<input type="file" id="photoIn" accept="image/*" style="display:none">
+<div class="busy" id="busy">📷 Preparo la foto…</div>
+
 <div class="win" id="win">
   <div class="winbox">
     <div style="font-size:54px">🎉</div>
@@ -212,7 +247,18 @@
     <canvas id="winCanvas" width="12" height="12"></canvas>
     <div id="winStars" style="font-size:26px;color:#f5b301;margin-bottom:6px"></div>
     <button class="big" id="nextBtn">Un altro disegno</button>
+    <button class="big alt" id="pickBtn">Scegli un disegno</button>
     <button class="big alt" id="homeBtn">Cambia gioco</button>
+  </div>
+</div>
+
+<div class="win" id="ask">
+  <div class="winbox">
+    <div style="font-size:54px" id="askIco">🔄</div>
+    <h2 id="askTitle">Ricominciare il disegno?</h2>
+    <p style="color:var(--muted);margin:0 0 10px">Si cancellano tutti i colori messi finora.</p>
+    <button class="big" id="askYes">Sì, ricomincia</button>
+    <button class="big alt" id="askNo">No, continuo</button>
   </div>
 </div>
 
@@ -283,7 +329,7 @@ function isLight(hex){
   return (r*299+g*587+b*114)/1000 > 170;
 }
 const shortName = im => im.name.replace(/ \((grande|gigante)\)/,"");
-const imgById = id => IMAGES.find(i => i.id===id);
+const imgById = id => IMAGES.find(i => i.id===id) || ((me()||{}).photos||[]).find(i => i.id===id);
 const modeById = id => MODES.find(m => m.id===id);
 
 /* ---------- Giocatori (memoria locale del dispositivo) ---------- */
@@ -299,7 +345,7 @@ function me(){
   }
   return p;
 }
-const albumCount = p => Object.keys(p.stars||{}).length || (p.album||[]).length;
+const albumCount = p => Object.keys(p.stars||{}).filter(id => IMAGES.some(i => i.id===id)).length || (p.album||[]).length;
 
 /* ---------- Voce e suoni ---------- */
 let voiceOn = store.get("cei-voice", true);
@@ -365,6 +411,7 @@ function show(id){
   if(id==="who") renderWho();
   if(id==="home") renderHome();
   if(id==="pick") renderPick();
+  if(id==="free") fInit();
   window.scrollTo(0,0);
 }
 document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => show(b.dataset.go)));
@@ -466,6 +513,10 @@ function renderHome(){
     b.onclick = () => { mode = md.id; level = p.level; p.lastMode = md.id; savePlayers(); say(md.name); show("pick"); };
     m.appendChild(b);
   });
+  const fb = document.createElement("button"); fb.className = "mode free";
+  fb.innerHTML = `<div class="ico">🖍️</div><b>Disegno libero</b><small>Disegna quello che vuoi, con tutti i colori</small>`;
+  fb.onclick = () => { say("Disegno libero"); show("free"); };
+  m.appendChild(fb);
 }
 $("#chgBtn").onclick = () => show("who");
 
@@ -487,6 +538,7 @@ function renderPick(){
   $("#pickTitle").textContent = md.ico + " " + md.name + " " + LEVELS[level-1].s + " – scegli un disegno";
   const box = $("#pics"); box.innerHTML = "";
   const groups = [
+    {t:"📷 Le mie foto", cls:"sect", list:p.photos||[], photos:true},
     {t:"🎄 Speciale Natale", cls:"sect xmas", list:IMAGES.filter(i => i.cat==="natale")},
     {t:"🎨 Disegni", cls:"sect", list:IMAGES.filter(i => i.cat!=="natale" && i.rows.length<=12)},
     {t:"🧩 Disegni grandi", cls:"sect", list:IMAGES.filter(i => i.cat!=="natale" && i.rows.length>12)}
@@ -498,6 +550,12 @@ function renderPick(){
     const hd = document.createElement("div"); hd.className = gr.cls; hd.textContent = gr.t;
     if(gi===0){ holder.insertBefore(hd, box); }
     else{ const nb = document.createElement("div"); nb.className = "pics extra"; holder.appendChild(hd); holder.appendChild(nb); target = nb; }
+    if(gr.photos){
+      const a = document.createElement("button"); a.className = "pic add";
+      a.innerHTML = `<div class="ico">📷</div><span>Colora una tua foto</span>`;
+      a.onclick = () => { $("#photoIn").value = ""; $("#photoIn").click(); };
+      target.appendChild(a);
+    }
     gr.list.forEach(im => addPic(im, target, p));
   });
 }
@@ -512,6 +570,17 @@ function addPic(im, box, p){
     const W = im.rows[0].length;
     if(W>12){ const g = document.createElement("small"); g.textContent = W>=20 ? "gigante · " + W + "×" + W : "grande · " + W + "×" + W; b.appendChild(g); }
     b.onclick = () => start(im);
+    if(im.cat==="foto"){
+      const d = document.createElement("span"); d.className = "del"; d.setAttribute("role","button"); d.textContent = "✕";
+      d.onclick = ev => {
+        ev.stopPropagation();
+        if(!d.classList.contains("sure")){ d.classList.add("sure"); d.textContent = "Elimina?"; return; }
+        p.photos = p.photos.filter(x => x.id!==im.id); delete p.stars[im.id];
+        if(p.save && p.save.img===im.id) p.save = null;
+        savePlayers(); renderPick();
+      };
+      b.appendChild(d);
+    }
     box.appendChild(b);
   }
 }
@@ -694,7 +763,16 @@ const stop = e => {
 };
 view.addEventListener("pointerup", stop); view.addEventListener("pointercancel", stop);
 
-$("#playBack").onclick = () => { persist(); show("home"); };
+$("#playBack").onclick = () => { persist(); show("pick"); };
+let askAction = null;
+function ask(ico, title, fn){ $("#askIco").textContent = ico; $("#askTitle").textContent = title; askAction = fn; $("#ask").classList.add("on"); }
+$("#resetBtn").onclick = () => { ask("🔄", "Ricominciare il disegno?", restart); say("Vuoi ricominciare il disegno?"); };
+$("#askNo").onclick = () => $("#ask").classList.remove("on");
+$("#askYes").onclick = () => { $("#ask").classList.remove("on"); if(askAction) askAction(); };
+function restart(){
+  const p = me(); if(p){ p.save = null; savePlayers(); }
+  resetZoom(); start(img); say("Si ricomincia!");
+}
 $("#voiceBtn").onclick = () => { voiceOn = !voiceOn; store.set("cei-voice", voiceOn); $("#voiceBtn").textContent = voiceOn ? "🔊" : "🔇"; if(voiceOn) say("Voce accesa"); };
 document.addEventListener("visibilitychange", () => { if(document.hidden && $("#play").classList.contains("on")) persist(); });
 
@@ -723,6 +801,137 @@ $("#nextBtn").onclick = () => {
   start(todo.length ? todo[0] : pick(IMAGES.filter(i=>i.id!==img.id)));
 };
 $("#homeBtn").onclick = () => { $("#win").classList.remove("on"); show("home"); };
+$("#pickBtn").onclick = () => { $("#win").classList.remove("on"); show("pick"); };
+
+/* ---------- Foto → disegno da colorare ---------- */
+const PHOTO_N = 16, PHOTO_K = 5;
+function photoToImage(srcImg){
+  const N = PHOTO_N, cv = document.createElement("canvas"); cv.width = cv.height = N;
+  const ctx = cv.getContext("2d");
+  const s = Math.min(srcImg.width, srcImg.height);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(srcImg, (srcImg.width-s)/2, (srcImg.height-s)/2, s, s, 0, 0, N, N);
+  const d = ctx.getImageData(0,0,N,N).data, px = [];
+  for(let i=0;i<N*N;i++) px.push([d[i*4], d[i*4+1], d[i*4+2]]);
+  // k-means con inizializzazione "più lontano"
+  const dist = (a,b) => (a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2;
+  let C = [px[Math.floor(px.length/2)].slice()];
+  while(C.length < PHOTO_K){
+    let best = null, bd = -1;
+    px.forEach(q => { const m = Math.min(...C.map(c => dist(q,c))); if(m>bd){ bd = m; best = q; } });
+    if(bd < 200) break; C.push(best.slice());
+  }
+  let lab = new Array(px.length).fill(0);
+  for(let it=0; it<12; it++){
+    lab = px.map(q => { let bi = 0, bv = Infinity; C.forEach((c,j) => { const v = dist(q,c); if(v<bv){ bv = v; bi = j; } }); return bi; });
+    C = C.map((c,j) => { const m = px.filter((_,i) => lab[i]===j); return m.length ? [0,1,2].map(k => m.reduce((a,q)=>a+q[k],0)/m.length) : c; });
+  }
+  // togli i colori quasi vuoti (meno di 3 caselle) assegnandoli al più vicino
+  const cnt = C.map((_,j) => lab.filter(l => l===j).length);
+  const keep = C.map((_,j) => j).filter(j => cnt[j]>=3);
+  lab = lab.map((l,i) => keep.includes(l) ? l : keep.reduce((b,j) => dist(px[i],C[j]) < dist(px[i],C[b]) ? j : b, keep[0]));
+  const ids = "ABCDE", colors = {};
+  keep.forEach((j,n) => { const c = C[j].map(v => Math.round(Math.max(0,Math.min(255,v))));
+    colors[ids[n]] = "#" + c.map(v => v.toString(16).padStart(2,"0")).join(""); });
+  const rows = [];
+  for(let y=0;y<N;y++){ let r = ""; for(let x=0;x<N;x++) r += ids[keep.indexOf(lab[y*N+x])]; rows.push(r); }
+  return {colors, rows};
+}
+$("#photoIn").onchange = e => {
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  $("#busy").classList.add("on");
+  const url = URL.createObjectURL(f), im = new Image();
+  im.onload = () => {
+    try{
+      const p = me(), r = photoToImage(im);
+      p.photos = p.photos || [];
+      const n = p.photos.reduce((m,x) => Math.max(m, +(x.name.match(/\d+/)||[0])[0]), 0) + 1;
+      const pic = {id:"foto-" + Date.now(), name:"Foto " + n, cat:"foto", colors:r.colors, rows:r.rows};
+      p.photos.unshift(pic); if(p.photos.length>12) p.photos.length = 12;
+      savePlayers();
+      say("Ecco la tua foto da colorare!");
+      start(pic);
+    }catch(err){ say("Non riesco ad aprire questa foto"); }
+    finally{ $("#busy").classList.remove("on"); URL.revokeObjectURL(url); }
+  };
+  im.onerror = () => { $("#busy").classList.remove("on"); say("Non riesco ad aprire questa foto"); };
+  im.src = url;
+};
+
+/* ---------- Disegno libero ---------- */
+const FCOLS = ["#212121","#e53935","#fb8c00","#fdd835","#43a047","#00acc1","#1e88e5","#8e24aa","#f48fb1","#8d6e63","#9e9e9e","#ffffff"];
+const fcv = $("#freeCv"), fctx = fcv.getContext("2d");
+let fColor = FCOLS[1], fSize = 14, fErase = false, fUndoStack = [], fReady = false;
+const fKey = () => "cei-free-" + (current||"x");
+function fInit(){
+  if(!fReady){
+    const w = Math.min(window.innerWidth - 32, 820), h = Math.max(320, window.innerHeight - 300);
+    fcv.width = 1200; fcv.height = Math.round(1200 * h / w); fReady = true;
+  }
+  fctx.fillStyle = "#fff"; fctx.fillRect(0,0,fcv.width,fcv.height);
+  const saved = store.get(fKey(), null);
+  if(saved){ const im = new Image(); im.onload = () => fctx.drawImage(im,0,0,fcv.width,fcv.height); im.src = saved; }
+  fUndoStack = [];
+  renderFreeTools();
+}
+function renderFreeTools(){
+  const cb = $("#fcols"); cb.innerHTML = "";
+  FCOLS.forEach(c => {
+    const b = document.createElement("button"); b.style.background = c; b.setAttribute("aria-label","colore");
+    if(c==="#ffffff") b.style.borderColor = "#e3dccf";
+    b.classList.toggle("sel", !fErase && c===fColor);
+    b.onclick = () => { fColor = c; fErase = false; renderFreeTools(); };
+    cb.appendChild(b);
+  });
+  const tb = $("#ftools"); tb.innerHTML = "";
+  [6,14,30].forEach(s => {
+    const b = document.createElement("button"); b.classList.toggle("sel", !fErase && fSize===s);
+    const dot = document.createElement("span"); dot.className = "dot"; dot.style.width = dot.style.height = (s*0.8+4) + "px"; dot.style.background = fColor==="#ffffff" ? "#bbb" : fColor;
+    b.appendChild(dot); b.onclick = () => { fSize = s; fErase = false; renderFreeTools(); };
+    tb.appendChild(b);
+  });
+  const er = document.createElement("button"); er.textContent = "🧽"; er.setAttribute("aria-label","Gomma");
+  er.classList.toggle("sel", fErase); er.onclick = () => { fErase = true; say("Gomma"); renderFreeTools(); };
+  tb.appendChild(er);
+}
+function fSnap(){ try{ fUndoStack.push(fctx.getImageData(0,0,fcv.width,fcv.height)); if(fUndoStack.length>15) fUndoStack.shift(); }catch(e){} }
+let fSaveT = null;
+function fPersist(){ clearTimeout(fSaveT); fSaveT = setTimeout(() => { try{ store.set(fKey(), fcv.toDataURL("image/jpeg", .8)); }catch(e){} }, 400); }
+function fPos(e){ const r = fcv.getBoundingClientRect(); return {x:(e.clientX-r.left)*fcv.width/r.width, y:(e.clientY-r.top)*fcv.height/r.height}; }
+let fDraw = null;
+fcv.addEventListener("pointerdown", e => {
+  e.preventDefault(); if(fDraw) return;
+  try{ fcv.setPointerCapture(e.pointerId); }catch(_){}
+  fSnap(); fDraw = {id:e.pointerId, p:fPos(e)};
+  const w = (fErase ? 46 : fSize) * fcv.width / fcv.getBoundingClientRect().width;
+  fctx.fillStyle = fErase ? "#fff" : fColor;
+  fctx.beginPath(); fctx.arc(fDraw.p.x, fDraw.p.y, w/2, 0, Math.PI*2); fctx.fill();
+});
+fcv.addEventListener("pointermove", e => {
+  if(!fDraw || e.pointerId!==fDraw.id) return;
+  const q = fPos(e), w = (fErase ? 46 : fSize) * fcv.width / fcv.getBoundingClientRect().width;
+  fctx.strokeStyle = fErase ? "#fff" : fColor; fctx.lineWidth = w; fctx.lineCap = fctx.lineJoin = "round";
+  fctx.beginPath(); fctx.moveTo(fDraw.p.x, fDraw.p.y); fctx.lineTo(q.x, q.y); fctx.stroke();
+  fDraw.p = q;
+});
+const fStop = e => { if(fDraw && e.pointerId===fDraw.id){ fDraw = null; fPersist(); } };
+fcv.addEventListener("pointerup", fStop); fcv.addEventListener("pointercancel", fStop);
+$("#fUndo").onclick = () => { const s = fUndoStack.pop(); if(s){ fctx.putImageData(s,0,0); fPersist(); } };
+$("#fClear").onclick = () => ask("🗑️", "Cancellare tutto il disegno?", () => {
+  fSnap(); fctx.fillStyle = "#fff"; fctx.fillRect(0,0,fcv.width,fcv.height); fPersist(); say("Foglio pulito!");
+});
+$("#fSave").onclick = () => {
+  fcv.toBlob(async blob => {
+    const name = "disegno-" + new Date().toISOString().slice(0,10) + ".png";
+    const file = new File([blob], name, {type:"image/png"});
+    try{
+      if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"Il mio disegno"}); return; }
+    }catch(e){ if(e && e.name==="AbortError") return; }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    say("Disegno salvato!");
+  }, "image/png");
+};
 
 /* ---------- Avvio ---------- */
 if(me()) show("home");
