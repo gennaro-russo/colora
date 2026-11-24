@@ -23,7 +23,7 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
     font-family:"Nunito",ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-serif;
-    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;overscroll-behavior:none}
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:pan-x pan-y;overscroll-behavior:none}
   input{-webkit-user-select:text;user-select:text}
   button{font:inherit;color:inherit;border:0;cursor:pointer;background:none}
   .screen{display:none;min-height:100%;padding:16px 16px 24px;flex-direction:column;align-items:center}
@@ -179,6 +179,15 @@
   .qfb.ok{color:#2fbf71}.qfb.ko{color:#e53935}
   .gate .qopts button{background:var(--accent2);text-shadow:none;font-size:28px}
   #winStats{color:var(--muted);font-weight:700;margin-bottom:8px}
+  @media (orientation: landscape) and (min-width: 900px){
+    #play.on{display:grid;grid-template-columns:auto 250px;grid-template-rows:auto auto auto 1fr;justify-content:center;column-gap:22px;align-items:start}
+    #play .bar{grid-column:1 / 3;justify-self:center}
+    #play #view{grid-column:1;grid-row:2 / 5}
+    #play #zoomBox{grid-column:2;grid-row:2;margin-top:0;justify-content:flex-start}
+    #play #zoomBox span{width:100%}
+    #play #pal{grid-column:2;grid-row:3;width:auto;justify-content:flex-start;margin-top:12px}
+    #play #hint{grid-column:2;grid-row:4;text-align:left}
+  }
 </style>
 </head>
 <body>
@@ -473,6 +482,7 @@ function makeLabel(mode, key, lv){
   const w = pick((lv===1 ? WORDS_V : lv===2 ? WORDS_C : SYL)[key]); return {t:w[0], s:w[1], e:1};
 }
 /* ---------- Stato partita ---------- */
+let qOpenedAt = 0;
 let quizOn = false, known = new Set(), stats = {ok:0, ko:0}, qCell = null, qLock = false;
 let level = 1, mode = null, img = null, cells = [], keys = [], order = [], colorIds = [], sel = -1, remaining = [], total = 0, filled = 0;
 
@@ -720,12 +730,13 @@ function addPic(im, box, p){
 function sizeGrid(){
   if(!img) return;
   const W = img.rows[0].length, H = img.rows.length, N = Math.max(W,H);
-  const vw = Math.min(window.innerWidth - 32, 820);
-  const vh = window.innerHeight - (img.rows[0].length>12 ? 330 : 270);
+  const wide = window.innerWidth > window.innerHeight && window.innerWidth >= 900;
+  const vw = wide ? window.innerWidth - 32 - 272 : Math.min(window.innerWidth - 32, 820);
+  const vh = wide ? window.innerHeight - 100 : window.innerHeight - 330;
   const side = Math.max(260, Math.min(vw, vh));
   const cell = Math.floor((side - 4 - (N-1)*2) / N);
   document.documentElement.style.setProperty("--cell", cell + "px");
-  $("#zoomBox").style.display = N>12 ? "" : "none";
+  $("#zoomBox").style.display = "";
   resetZoom();
 }
 
@@ -749,7 +760,9 @@ $("#zIn").onclick = e => { e.stopPropagation(); zoomAt(1.5, grid.offsetWidth/2, 
 $("#zOut").onclick = e => { e.stopPropagation(); zoomAt(1/1.5, grid.offsetWidth/2, grid.offsetHeight/2); };
 $("#zFit").onclick = e => { e.stopPropagation(); resetZoom(); };
 ["pointerdown","pointermove","pointerup"].forEach(t => $("#zoomBox").addEventListener(t, e => e.stopPropagation()));
-document.addEventListener("gesturestart", e => e.preventDefault());
+["gesturestart","gesturechange","gestureend"].forEach(t => document.addEventListener(t, e => e.preventDefault()));
+document.addEventListener("touchmove", e => { if(e.touches.length>1 && !(e.target.closest && e.target.closest("#view"))) e.preventDefault(); }, {passive:false});
+
 window.addEventListener("resize", sizeGrid);
 
 function persist(){
@@ -760,7 +773,7 @@ function persist(){
 }
 
 function start(image, saved){
-  img = image;
+  img = image; clearTouches();
   const pl = me();
   quizOn = saved ? !!saved.quiz : !!(pl && pl.quiz);
   known = new Set(saved && saved.known || []);
@@ -865,17 +878,20 @@ function startPinch(){
   pinch = {d: Math.hypot(a.x-b.x, a.y-b.y) || 1, mx:(a.x+b.x)/2, my:(a.y+b.y)/2, s:zs, tx:ztx, ty:zty};
 }
 const grid = $("#grid");
+let pendingQ = null; // nel quiz la domanda si apre quando il dito si alza (così lo zoom a due dita funziona)
+function clearTouches(){ touches.clear(); pinch = null; painting = false; lastIdx = -1; pendingQ = null; }
 view.addEventListener("pointerdown", e => {
   e.preventDefault();
+  if(e.isPrimary) clearTouches();
   try{ view.setPointerCapture(e.pointerId); }catch(_){}
   touches.set(e.pointerId, local(e));
-  if(touches.size===2){ painting = false; startPinch(); return; }
+  if(touches.size===2){ painting = false; pendingQ = null; startPinch(); return; }
   if(touches.size>2) return;
   const c = cellAt(e.clientX, e.clientY); if(!c || c.k<0) return;
   if(quizOn){
     if(c.done) return;
     if(known.has(c.lab.t)){ painting = true; lastIdx = +c.el.dataset.i; fill(c); return; }
-    openQuiz(c); return;
+    pendingQ = {c, id:e.pointerId, x:e.clientX, y:e.clientY}; return;
   }
   painting = true; lastIdx = +c.el.dataset.i;
   if(c.done) return;
@@ -885,6 +901,7 @@ view.addEventListener("pointerdown", e => {
 });
 view.addEventListener("pointermove", e => {
   if(touches.has(e.pointerId)) touches.set(e.pointerId, local(e));
+  if(pendingQ && Math.hypot(e.clientX-pendingQ.x, e.clientY-pendingQ.y) > 14) pendingQ = null;
   if(pinch && touches.size>=2){
     const [a,b] = [...touches.values()];
     const d = Math.hypot(a.x-b.x, a.y-b.y) || 1, mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
@@ -900,11 +917,20 @@ view.addEventListener("pointermove", e => {
   if(!c.done && c.k===sel) fill(c);
 });
 const stop = e => {
+  if(e.type==="pointerup" && pendingQ && pendingQ.id===e.pointerId && touches.size<=1){
+    const c = pendingQ.c; pendingQ = null; touches.delete(e.pointerId);
+    if(!c.done) openQuiz(c);
+    return;
+  }
+  if(pendingQ && pendingQ.id===e.pointerId) pendingQ = null;
   touches.delete(e.pointerId);
   if(touches.size<2) pinch = null;
   if(touches.size===0){ painting = false; lastIdx = -1; }
 };
 view.addEventListener("pointerup", stop); view.addEventListener("pointercancel", stop);
+view.addEventListener("lostpointercapture", stop);
+window.addEventListener("blur", clearTouches);
+document.addEventListener("visibilitychange", clearTouches);
 
 /* ---------- Quiz: prima rispondi, poi coloro ---------- */
 function prettyOp(t){ return t.replace(/\+/g," + ").replace(/−/g," − "); }
@@ -923,6 +949,7 @@ function quizText(c){
   return {title: level===1 ? "Con che vocale inizia?" : level===2 ? "Con che lettera inizia?" : "Con che sillaba inizia?", q:t, speak:c.lab.s, emo:true};
 }
 function openQuiz(c){
+  clearTouches();
   qCell = c; qLock = false;
   const q = quizText(c);
   $("#qTitle").textContent = q.title;
@@ -938,11 +965,11 @@ function openQuiz(c){
     b.onclick = () => answer(i, b);
     box.appendChild(b);
   });
-  $("#quiz").classList.add("on");
+  $("#quiz").classList.add("on"); qOpenedAt = Date.now();
   if(q.speak) say(q.speak);
 }
 function answer(i, btn){
-  if(qLock || !qCell) return;
+  if(qLock || !qCell || Date.now()-qOpenedAt < 450) return; // ignora il "click" del tocco che ha aperto la domanda
   const c = qCell;
   if(i===c.k){
     stats.ok++; known.add(c.lab.t);
@@ -960,7 +987,8 @@ function answer(i, btn){
     setTimeout(() => { qLock = false; $("#qOpts").classList.remove("locked"); }, 1500);
   }
 }
-$("#qClose").onclick = () => { $("#quiz").classList.remove("on"); qCell = null; };
+$("#qClose").onclick = () => { if(Date.now()-qOpenedAt < 450) return; $("#quiz").classList.remove("on"); qCell = null; };
+$("#quiz").addEventListener("pointerdown", e => { if(e.target.id==="quiz" && Date.now()-qOpenedAt > 500){ $("#quiz").classList.remove("on"); qCell = null; } });
 
 $("#playBack").onclick = () => { persist(); show("pick"); };
 let askAction = null;
