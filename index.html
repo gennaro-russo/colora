@@ -145,6 +145,40 @@
   .zoom{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;flex-wrap:wrap}
   .zoom button{width:46px;height:46px;border-radius:14px;background:var(--card);font-size:24px;font-weight:900;box-shadow:0 3px 0 #e8dfd2}
   .zoom span{color:var(--muted);font-size:14px}
+  .filters{width:min(820px,100%);background:var(--card);border-radius:22px;padding:12px 14px;box-shadow:0 3px 0 #e8dfd2;margin-bottom:16px;display:flex;flex-direction:column;gap:10px}
+  .frow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .frow > b{font-size:15px;color:var(--muted);width:62px;flex:none}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;flex:1}
+  .chip{background:#f6f1e9;border-radius:999px;padding:9px 14px;font-weight:800;font-size:15px;border:3px solid transparent}
+  .chip.sel{border-color:var(--accent);background:#fff1ea}
+  .chip:disabled{opacity:.35}
+  .chip small{font-weight:700;color:var(--muted);margin-left:4px}
+  .quizT{display:flex;align-items:center;gap:12px;text-align:left;width:100%;background:#f6f1e9;border-radius:16px;padding:10px 12px}
+  .quizT .ico{font-size:30px}
+  .quizT b{display:block;font-size:17px}
+  .quizT small{color:var(--muted);font-size:13px}
+  .quizT .sw2{margin-left:auto;width:58px;height:32px;border-radius:999px;background:#d6cfc4;position:relative;flex:none;transition:background .2s}
+  .quizT .sw2::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .quizT.on .sw2{background:#2fbf71}
+  .quizT.on .sw2::after{left:29px}
+  .pal.legend .sw{cursor:default;transform:none;border-color:transparent}
+  .qbox{background:var(--card);border-radius:28px;padding:22px;text-align:center;max-width:520px;width:100%;animation:pop .25s;position:relative}
+  .qbox .qx{position:absolute;top:10px;right:10px;width:44px;height:44px;border-radius:14px;background:#f6f1e9;font-size:20px}
+  .qbox .qt{color:var(--muted);font-weight:800;font-size:18px;margin:4px 0 6px}
+  .qbox .qq{font-size:clamp(46px,12vw,72px);font-weight:900;margin:4px 0 2px;line-height:1.15}
+  .qbox .qq.emo{font-size:clamp(70px,18vw,100px)}
+  .qbox .dots{font-size:22px;letter-spacing:2px;color:#ff7a59;min-height:30px;margin:4px 0;word-break:break-all}
+  .qbox .dots s{color:#bbb}
+  .qbox .qlisten{background:#f6f1e9;border-radius:14px;padding:8px 14px;font-weight:800;font-size:16px;margin-bottom:6px}
+  .qopts{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:10px}
+  .qopts button{min-width:84px;height:84px;border-radius:22px;font-size:34px;font-weight:900;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35);box-shadow:0 4px 0 rgba(0,0,0,.15);padding:0 12px}
+  .qopts button.light{color:#2d2a32;text-shadow:none}
+  .qopts button.no{animation:bad .35s;opacity:.4}
+  .qopts.locked button{opacity:.45}
+  .qfb{min-height:26px;font-weight:800;font-size:18px;margin-top:10px}
+  .qfb.ok{color:#2fbf71}.qfb.ko{color:#e53935}
+  .gate .qopts button{background:var(--accent2);text-shadow:none;font-size:28px}
+  #winStats{color:var(--muted);font-weight:700;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -181,6 +215,15 @@
     <button class="chg" id="chgBtn">Cambia</button>
   </div>
   <div class="levels" id="levels"></div>
+  <div class="filters">
+    <div class="frow"><b>Disegni</b><div class="chips" id="catChips"></div></div>
+    <div class="frow"><b>Misura</b><div class="chips" id="sizeChips"></div></div>
+    <button class="quizT" id="quizT">
+      <div class="ico">🧠</div>
+      <div><b>Quiz prima di colorare</b><small id="quizInfo"></small></div>
+      <div class="sw2"></div>
+    </button>
+  </div>
   <button class="cont" id="contBtn" style="display:none">
     <canvas id="contCv" width="12" height="12"></canvas>
     <div><b>Continua la partita</b><small id="contInfo"></small></div>
@@ -246,9 +289,33 @@
     <p style="color:var(--muted);margin:0">Hai finito il disegno: è nel tuo album!</p>
     <canvas id="winCanvas" width="12" height="12"></canvas>
     <div id="winStars" style="font-size:26px;color:#f5b301;margin-bottom:6px"></div>
+    <div id="winStats"></div>
     <button class="big" id="nextBtn">Un altro disegno</button>
     <button class="big alt" id="pickBtn">Scegli un disegno</button>
     <button class="big alt" id="homeBtn">Cambia gioco</button>
+  </div>
+</div>
+
+<div class="win" id="quiz">
+  <div class="qbox">
+    <button class="qx" id="qClose" aria-label="Chiudi">✕</button>
+    <div class="qt" id="qTitle"></div>
+    <div class="qq" id="qQ"></div>
+    <div class="dots" id="qDots"></div>
+    <button class="qlisten" id="qListen">🔊 Ascolta</button>
+    <div class="qopts" id="qOpts"></div>
+    <div class="qfb" id="qFb"></div>
+  </div>
+</div>
+
+<div class="win gate" id="gate">
+  <div class="qbox">
+    <button class="qx" id="gClose" aria-label="Chiudi">✕</button>
+    <div class="qt">🔒 Solo per i grandi</div>
+    <p style="margin:0 0 6px;color:var(--muted)">Per spegnere il quiz rispondi:</p>
+    <div class="qq" id="gQ"></div>
+    <div class="qopts" id="gOpts"></div>
+    <div class="qfb" id="gFb"></div>
   </div>
 </div>
 
@@ -342,6 +409,9 @@ function me(){
   if(p){
     if(!p.stars){ p.stars = {}; (p.album||[]).forEach(id => p.stars[id] = 1); }
     if(!p.level) p.level = 1;
+    if(p.quiz===undefined) p.quiz = true;
+    if(!p.fCat) p.fCat = "tutti";
+    if(!p.fSize) p.fSize = "tutte";
   }
   return p;
 }
@@ -403,6 +473,7 @@ function makeLabel(mode, key, lv){
   const w = pick((lv===1 ? WORDS_V : lv===2 ? WORDS_C : SYL)[key]); return {t:w[0], s:w[1], e:1};
 }
 /* ---------- Stato partita ---------- */
+let quizOn = false, known = new Set(), stats = {ok:0, ko:0}, qCell = null, qLock = false;
 let level = 1, mode = null, img = null, cells = [], keys = [], order = [], colorIds = [], sel = -1, remaining = [], total = 0, filled = 0;
 
 /* ---------- Navigazione ---------- */
@@ -488,6 +559,7 @@ function renderHome(){
   $("#bName").textContent = "Ciao, " + p.name + "!";
   const nA = albumCount(p);
   $("#bInfo").textContent = nA ? `⭐ Album: ${nA} di ${IMAGES.length} disegni` : "Scegli un gioco e inizia a colorare";
+  renderFilters(p);
   const lvBox = $("#levels"); lvBox.innerHTML = "";
   LEVELS.forEach((L,i) => {
     const b = document.createElement("button"); b.className = "lv" + (p.level===i+1 ? " sel" : "");
@@ -531,24 +603,83 @@ function drawThumb(cv, image, colored){
   }));
 }
 
+/* --- Filtri disegni (categoria e misura) --- */
+const CATS = [{id:"tutti",n:"Tutti"},{id:"natale",n:"🎄 Natale"},{id:"disegni",n:"🎨 Disegni"},{id:"foto",n:"📷 Le mie foto"}];
+const SIZES = [{id:"tutte",n:"Tutte"},{id:"piccoli",n:"Piccoli"},{id:"grandi",n:"Grandi"},{id:"giganti",n:"Giganti"}];
+const sizeOf = im => { const N = Math.max(im.rows.length, im.rows[0].length); return N<=12 ? "piccoli" : N<20 ? "grandi" : "giganti"; };
+const catOf = im => im.cat==="natale" ? "natale" : im.cat==="foto" ? "foto" : "disegni";
+const allImages = p => [...((p && p.photos) || []), ...IMAGES];
+const matches = (im, cat, size) => (cat==="tutti" || catOf(im)===cat) && (size==="tutte" || sizeOf(im)===size);
+const pool = p => allImages(p).filter(im => matches(im, p.fCat, p.fSize));
+function renderFilters(p){
+  const cc = $("#catChips"), sc = $("#sizeChips"); cc.innerHTML = ""; sc.innerHTML = "";
+  if(p.fCat!=="foto" && !allImages(p).some(im => matches(im, p.fCat, p.fSize))) p.fSize = "tutte";
+  CATS.forEach(c => {
+    const n = allImages(p).filter(im => matches(im, c.id, p.fSize)).length;
+    const b = document.createElement("button"); b.className = "chip" + (p.fCat===c.id ? " sel" : "");
+    b.innerHTML = c.n + ` <small>${n}</small>`;
+    b.disabled = n===0 && c.id!=="foto";
+    b.onclick = () => { p.fCat = c.id; savePlayers(); renderHome(); };
+    cc.appendChild(b);
+  });
+  SIZES.forEach(s => {
+    const n = allImages(p).filter(im => matches(im, p.fCat, s.id)).length;
+    const b = document.createElement("button"); b.className = "chip" + (p.fSize===s.id ? " sel" : "");
+    b.innerHTML = s.n + ` <small>${n}</small>`;
+    b.disabled = n===0 && p.fCat!=="foto";
+    b.onclick = () => { p.fSize = s.id; savePlayers(); renderHome(); };
+    sc.appendChild(b);
+  });
+  $("#quizT").classList.toggle("on", !!p.quiz);
+  $("#quizInfo").textContent = p.quiz ? "Acceso: per ogni casella prima si risponde, poi si colora" : "Spento: si colora direttamente";
+}
+$("#quizT").onclick = () => {
+  const p = me(); if(!p) return;
+  if(!p.quiz){ p.quiz = true; savePlayers(); say("Quiz acceso"); renderHome(); return; }
+  openGate(() => { p.quiz = false; savePlayers(); renderHome(); });
+};
+/* blocco genitori per spegnere il quiz */
+let gateFn = null;
+function openGate(fn){
+  gateFn = fn;
+  const a = 6+rnd(4), b = 6+rnd(4), ok = a*b;
+  $("#gQ").textContent = a + " × " + b + " = ?";
+  $("#gFb").textContent = ""; $("#gFb").className = "qfb";
+  const opts = shuffle([ok, ok+a, ok-b, ok+10].filter((v,i,arr) => arr.indexOf(v)===i));
+  const box = $("#gOpts"); box.innerHTML = "";
+  opts.forEach(v => {
+    const bt = document.createElement("button"); bt.textContent = v;
+    bt.onclick = () => {
+      if(v===ok){ $("#gate").classList.remove("on"); if(gateFn) gateFn(); }
+      else{ $("#gFb").textContent = "Non è corretto"; $("#gFb").className = "qfb ko"; setTimeout(() => $("#gate").classList.remove("on"), 900); }
+    };
+    box.appendChild(bt);
+  });
+  $("#gate").classList.add("on");
+}
+$("#gClose").onclick = () => $("#gate").classList.remove("on");
+
 /* --- Scelta disegno --- */
 function renderPick(){
   const p = me(); if(!p){ show("who"); return; }
   const md = modeById(mode);
-  $("#pickTitle").textContent = md.ico + " " + md.name + " " + LEVELS[level-1].s + " – scegli un disegno";
+  $("#pickTitle").textContent = md.ico + " " + md.name + " " + LEVELS[level-1].s + (p.quiz ? " 🧠" : "") + " – scegli un disegno";
   const box = $("#pics"); box.innerHTML = "";
+  const P = pool(p);
+  const sz = s => P.filter(im => sizeOf(im)===s);
   const groups = [
-    {t:"📷 Le mie foto", cls:"sect", list:p.photos||[], photos:true},
-    {t:"🎄 Speciale Natale", cls:"sect xmas", list:IMAGES.filter(i => i.cat==="natale")},
-    {t:"🎨 Disegni", cls:"sect", list:IMAGES.filter(i => i.cat!=="natale" && i.rows.length<=12)},
-    {t:"🧩 Disegni grandi", cls:"sect", list:IMAGES.filter(i => i.cat!=="natale" && i.rows.length>12)}
-  ];
+    {t:"📷 Le mie foto", cls:"sect", list:P.filter(im => im.cat==="foto"), photos:(p.fCat==="tutti"||p.fCat==="foto")},
+    {t:"🎄 Speciale Natale", cls:"sect xmas", list:P.filter(im => im.cat==="natale")},
+    {t:"🎨 Disegni piccoli", cls:"sect", list:sz("piccoli").filter(im => catOf(im)==="disegni")},
+    {t:"🧩 Disegni grandi", cls:"sect", list:sz("grandi").filter(im => catOf(im)==="disegni")},
+    {t:"🏔️ Disegni giganti", cls:"sect", list:sz("giganti").filter(im => catOf(im)==="disegni")}
+  ].filter(g => g.list.length || g.photos);
   const holder = box.parentNode;
   holder.querySelectorAll(".sect, .pics.extra").forEach(e => e.remove());
   let target = box;
   groups.forEach((gr, gi) => {
     const hd = document.createElement("div"); hd.className = gr.cls; hd.textContent = gr.t;
-    if(gi===0){ holder.insertBefore(hd, box); }
+    if(gi===0){ holder.insertBefore(hd, box); target = box; }
     else{ const nb = document.createElement("div"); nb.className = "pics extra"; holder.appendChild(hd); holder.appendChild(nb); target = nb; }
     if(gr.photos){
       const a = document.createElement("button"); a.className = "pic add";
@@ -623,13 +754,17 @@ window.addEventListener("resize", sizeGrid);
 
 function persist(){
   const p = me(); if(!p || !img) return;
-  p.save = {mode, level, img:img.id, keys, order, sel, ts:Date.now(),
+  p.save = {mode, level, quiz:quizOn, known:[...known], stats, img:img.id, keys, order, sel, ts:Date.now(),
             labels: cells.map(c => c.lab || null), done: cells.map(c => c.done)};
   savePlayers();
 }
 
 function start(image, saved){
   img = image;
+  const pl = me();
+  quizOn = saved ? !!saved.quiz : !!(pl && pl.quiz);
+  known = new Set(saved && saved.known || []);
+  stats = saved && saved.stats ? {ok:saved.stats.ok||0, ko:saved.stats.ko||0} : {ok:0, ko:0};
   const count = {}; img.rows.join("").split("").forEach(c => { if(c!==".") count[c]=(count[c]||0)+1; });
   colorIds = Object.keys(img.colors).sort((a,b)=>count[b]-count[a]);
   if(saved){ keys = saved.keys; order = saved.order; }
@@ -660,7 +795,7 @@ function start(image, saved){
     const col = img.colors[colorIds[order.indexOf(i)]];
     const b = document.createElement("button"); b.className = "sw" + (isLight(col) ? " light" : "");
     b.style.background = col; b.textContent = String(k); b.dataset.col = col;
-    b.onclick = () => { select(i); persist(); say(typeof k==="number" ? NUMWORD[k] : k); };
+    b.onclick = () => { if(quizOn){ say(typeof k==="number" ? NUMWORD[k] : k); return; } select(i); persist(); say(typeof k==="number" ? NUMWORD[k] : k); };
     pal.appendChild(b);
   });
 
@@ -676,9 +811,10 @@ function start(image, saved){
   }
 
   $("#playTitle").textContent = modeById(mode).ico + " " + shortName(img) + " " + LEVELS[level-1].s;
-  $("#helpBtn").style.display = level===3 ? "" : "none";
+  $("#helpBtn").style.display = level===3 && !quizOn ? "" : "none";
+  $("#pal").classList.toggle("legend", quizOn);
   $("#voiceBtn").textContent = voiceOn ? "🔊" : "🔇";
-  $("#hint").textContent = level===3 ? "Livello difficile: niente caselle illuminate. Se serve, tocca 💡" : mode==="iniziali" ? "Tocca un disegnino per sentire la parola 👂" :
+  $("#hint").textContent = quizOn ? "🧠 Tocca una casella, rispondi alla domanda e la casella si colora!" : level===3 ? "Livello difficile: niente caselle illuminate. Se serve, tocca 💡" : mode==="iniziali" ? "Tocca un disegnino per sentire la parola 👂" :
                            (mode==="somme"||mode==="sottrazioni") ? "Tocca una casella per sentire l'operazione 👂" :
                            "Scegli un colore qui sopra, poi tocca le caselle!";
   show("play"); sizeGrid(); hintOn = false;
@@ -691,6 +827,7 @@ let hintOn = false, hintTimer = null;
 function select(i){
   sel = i;
   [...$("#pal").children].forEach((b,j) => b.classList.toggle("sel", j===i));
+  if(quizOn){ [...$("#pal").children].forEach(b => b.classList.remove("sel")); cells.forEach(c => c.el.classList.remove("hi")); return; }
   const show = level<3 || hintOn;
   cells.forEach(c => c.el.classList.toggle("hi", show && !c.done && c.k===i));
 }
@@ -708,7 +845,7 @@ function fill(c){
     beep(880,.25,"triangle");
     const next = remaining.findIndex(r => r>0);
     const doneK = c.k;
-    if(next>=0) setTimeout(()=>{ if(sel===doneK){ select(next); persist(); } }, 250);
+    if(next>=0 && !quizOn) setTimeout(()=>{ if(sel===doneK){ select(next); persist(); } }, 250);
   }
   updateProg();
   if(filled===total) setTimeout(win, 500); else persist();
@@ -735,6 +872,11 @@ view.addEventListener("pointerdown", e => {
   if(touches.size===2){ painting = false; startPinch(); return; }
   if(touches.size>2) return;
   const c = cellAt(e.clientX, e.clientY); if(!c || c.k<0) return;
+  if(quizOn){
+    if(c.done) return;
+    if(known.has(c.lab.t)){ painting = true; lastIdx = +c.el.dataset.i; fill(c); return; }
+    openQuiz(c); return;
+  }
   painting = true; lastIdx = +c.el.dataset.i;
   if(c.done) return;
   if(c.lab && (mode==="iniziali"||mode==="somme"||mode==="sottrazioni")) say(c.lab.s);
@@ -754,6 +896,7 @@ view.addEventListener("pointermove", e => {
   if(!painting) return;
   const c = cellAt(e.clientX, e.clientY); if(!c) return;
   const idx = +c.el.dataset.i; if(idx===lastIdx) return; lastIdx = idx;
+  if(quizOn){ if(!c.done && known.has(c.lab.t)) fill(c); return; }
   if(!c.done && c.k===sel) fill(c);
 });
 const stop = e => {
@@ -762,6 +905,62 @@ const stop = e => {
   if(touches.size===0){ painting = false; lastIdx = -1; }
 };
 view.addEventListener("pointerup", stop); view.addEventListener("pointercancel", stop);
+
+/* ---------- Quiz: prima rispondi, poi coloro ---------- */
+function prettyOp(t){ return t.replace(/\+/g," + ").replace(/−/g," − "); }
+function dotsFor(t){
+  const m = t.match(/^(\d+)([+−])(\d+)(?:\+(\d+))?$/); if(!m) return "";
+  const a = +m[1], b = +m[3], c = m[4] ? +m[4] : 0;
+  if(a>20) return "";
+  if(m[2]==="+") return "●".repeat(a) + "  +  " + "●".repeat(b) + (c ? "  +  " + "●".repeat(c) : "");
+  return "●".repeat(a-b) + "<s>" + "●".repeat(b) + "</s>";
+}
+function quizText(c){
+  const t = c.lab.t;
+  if(mode==="somme"||mode==="sottrazioni") return {title:"Quanto fa?", q:prettyOp(t) + " = ?", speak:c.lab.s};
+  if(mode==="numeri") return {title:"Trova il numero uguale", q:t, speak:null};
+  if(mode==="vocali") return {title: level===3 ? "Trova la sillaba uguale" : "Trova la lettera uguale", q:t, speak:null};
+  return {title: level===1 ? "Con che vocale inizia?" : level===2 ? "Con che lettera inizia?" : "Con che sillaba inizia?", q:t, speak:c.lab.s, emo:true};
+}
+function openQuiz(c){
+  qCell = c; qLock = false;
+  const q = quizText(c);
+  $("#qTitle").textContent = q.title;
+  $("#qQ").textContent = q.q; $("#qQ").classList.toggle("emo", !!q.emo);
+  $("#qDots").innerHTML = ""; $("#qFb").textContent = ""; $("#qFb").className = "qfb";
+  $("#qListen").style.display = (mode==="numeri") ? "none" : "";
+  $("#qListen").onclick = () => say(c.lab.s);
+  const box = $("#qOpts"); box.innerHTML = ""; box.classList.remove("locked");
+  keys.forEach((k,i) => {
+    const col = colorOfKey(i);
+    const b = document.createElement("button"); b.textContent = String(k);
+    b.style.background = col; if(isLight(col)) b.classList.add("light");
+    b.onclick = () => answer(i, b);
+    box.appendChild(b);
+  });
+  $("#quiz").classList.add("on");
+  if(q.speak) say(q.speak);
+}
+function answer(i, btn){
+  if(qLock || !qCell) return;
+  const c = qCell;
+  if(i===c.k){
+    stats.ok++; known.add(c.lab.t);
+    $("#qFb").textContent = pick(["Giusto! 🎉","Esatto! 👏","Perfetto! ⭐","Ottimo! 💪"]);
+    $("#qFb").className = "qfb ok";
+    qLock = true; beep(988,.15,"triangle");
+    setTimeout(() => { $("#quiz").classList.remove("on"); qCell = null; if(!c.done) fill(c); }, 450);
+  } else {
+    stats.ko++; persist();
+    btn.classList.add("no"); beep(180,.2,"square");
+    $("#qFb").textContent = "Riprova… pensaci bene 🤔"; $("#qFb").className = "qfb ko";
+    say("Riprova");
+    const d = dotsFor(c.lab.t); if(d) $("#qDots").innerHTML = d;
+    qLock = true; $("#qOpts").classList.add("locked");
+    setTimeout(() => { qLock = false; $("#qOpts").classList.remove("locked"); }, 1500);
+  }
+}
+$("#qClose").onclick = () => { $("#quiz").classList.remove("on"); qCell = null; };
 
 $("#playBack").onclick = () => { persist(); show("pick"); };
 let askAction = null;
@@ -782,6 +981,7 @@ function win(){
   if(p){ p.stars[img.id] = Math.max(p.stars[img.id]||0, level); p.save = null; savePlayers(); }
   drawThumb($("#winCanvas"), img, true);
   $("#winStars").textContent = "★".repeat(level);
+  $("#winStats").textContent = quizOn ? `🧠 Risposte giuste: ${stats.ok} · Errori: ${stats.ko}` : "";
   $("#winTitle").textContent = p ? "Ben fatto, " + p.name + "!" : "Fantastico!";
   $("#win").classList.add("on");
   say(p ? "Fantastico " + p.name + "! Hai finito il disegno!" : "Fantastico! Hai finito il disegno!");
@@ -797,8 +997,9 @@ function win(){
 $("#nextBtn").onclick = () => {
   $("#win").classList.remove("on");
   const p = me(), st = p ? p.stars : {};
-  const todo = IMAGES.filter(i => (st[i.id]||0) < level && i.id!==img.id);
-  start(todo.length ? todo[0] : pick(IMAGES.filter(i=>i.id!==img.id)));
+  const P = p ? pool(p) : IMAGES; const base = P.length > 1 ? P : IMAGES;
+  const todo = base.filter(i => (st[i.id]||0) < level && i.id!==img.id);
+  start(todo.length ? todo[0] : pick(base.filter(i=>i.id!==img.id)));
 };
 $("#homeBtn").onclick = () => { $("#win").classList.remove("on"); show("home"); };
 $("#pickBtn").onclick = () => { $("#win").classList.remove("on"); show("pick"); };

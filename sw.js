@@ -1,7 +1,7 @@
 // © 2026 Gennaro Russo · Tutti i diritti riservati.
 // Service worker: salva il gioco sul dispositivo per usarlo offline.
 // Cambia VERSION a ogni aggiornamento dei file per far scaricare la nuova versione.
-const VERSION = "colora-v6";
+const VERSION = "colora-v7";
 const FILES = [
   "./", "./index.html", "./manifest.webmanifest",
   "./icons/apple-touch-icon.png", "./icons/icon-192.png",
